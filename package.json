@@ -4,7 +4,12 @@
   "description": "A set of common use UI elements.",
   "type": "module",
   "files": ["dist"],
-  "sideEffects": ["./dist/define-all.js"],
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/define-all.js",
+    "./dist/elements/drag-scroll.js",
+    "./dist/elements/transform-box.js"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

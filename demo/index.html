@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Casko UI Elements Demo</title>
+    <script type="module" src="/src/define-all.ts"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(15, 84, 73, 0.12), transparent 40%),
+          linear-gradient(180deg, #f6fbf8 0%, #eef4f1 100%);
+        color: #17322d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero p {
+        max-width: 720px;
+        color: #43615a;
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(23, 50, 45, 0.08);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 24px 60px rgba(19, 44, 39, 0.08);
+        backdrop-filter: blur(12px);
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .hint {
+        color: #55726b;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      drag-scroll {
+        height: 280px;
+        border-radius: 18px;
+        border: 1px solid rgba(15, 84, 73, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(239, 245, 242, 0.95));
+      }
+
+      .scroll-canvas {
+        width: 1080px;
+        min-height: 100%;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(180px, 1fr));
+        gap: 16px;
+      }
+
+      .swatch {
+        min-height: 220px;
+        border-radius: 18px;
+        padding: 18px;
+        display: flex;
+        align-items: end;
+        color: white;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        box-shadow: inset 0 -60px 100px rgba(0, 0, 0, 0.18);
+      }
+
+      .swatch:nth-child(1) { background: linear-gradient(135deg, #0f5449, #4ca68d); }
+      .swatch:nth-child(2) { background: linear-gradient(135deg, #365c8d, #6ea7ff); }
+      .swatch:nth-child(3) { background: linear-gradient(135deg, #9b5930, #f6b86d); }
+      .swatch:nth-child(4) { background: linear-gradient(135deg, #69428a, #b48dde); }
+      .swatch:nth-child(5) { background: linear-gradient(135deg, #8b3d55, #eb8aaa); }
+
+      .stage {
+        position: relative;
+        min-height: 420px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(15, 84, 73, 0.16);
+        background:
+          linear-gradient(rgba(15, 84, 73, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 84, 73, 0.08) 1px, transparent 1px),
+          linear-gradient(180deg, #ffffff 0%, #edf5f1 100%);
+        background-size: 32px 32px, 32px 32px, auto;
+      }
+
+      transform-box {
+        width: 100%;
+        height: 420px;
+        --transform-box-selected-color: #d8682d;
+        --transform-box-outline-color: rgba(216, 104, 45, 0.78);
+        --transform-box-background: rgba(216, 104, 45, 0.08);
+      }
+
+      .card-art {
+        width: 100%;
+        height: 100%;
+        border-radius: 14px;
+        background:
+          radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.55), transparent 28%),
+          linear-gradient(135deg, #f7c38f 0%, #dd7c46 45%, #7d3921 100%);
+        display: grid;
+        align-content: end;
+        padding: 16px;
+        color: white;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+      }
+
+      .log {
+        min-height: 88px;
+        border-radius: 14px;
+        background: #16332d;
+        color: #d8efe8;
+        padding: 14px;
+        font: 0.9rem/1.5 Consolas, "Courier New", monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Casko UI Elements</h1>
+        <p>
+          This demo page shows the currently shipped custom elements. Drag the gallery to scroll,
+          then move, resize, rotate, and keyboard-nudge the transform box.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Drag Scroll</h2>
+          <p class="hint">
+            Click and drag anywhere inside the viewport to pan across the oversized content.
+          </p>
+          <drag-scroll>
+            <div class="scroll-canvas">
+              <div class="swatch">Editorial</div>
+              <div class="swatch">Commerce</div>
+              <div class="swatch">Campaign</div>
+              <div class="swatch">Identity</div>
+              <div class="swatch">Motion</div>
+            </div>
+          </drag-scroll>
+        </article>
+
+        <article class="panel">
+          <h2>Transform Box</h2>
+          <p class="hint">
+            Drag the box to move it, use the corner and edge handles to resize, and drag the top
+            handle to rotate. Arrow keys also move the selected box.
+          </p>
+          <div class="stage">
+            <transform-box
+              id="transform-demo"
+              x="110"
+              y="90"
+              width="190"
+              height="140"
+              rotation="-8"
+              selected
+              show-side-handles
+              rotatable
+              resizable
+              movable>
+              <div class="card-art">Promo Tile</div>
+            </transform-box>
+          </div>
+          <div class="log" id="event-log">Waiting for interaction...</div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module">
+      const transformDemo = document.querySelector('#transform-demo');
+      const log = document.querySelector('#event-log');
+
+      if (transformDemo && log) {
+        const renderLog = (label, detail) => {
+          log.textContent = `${label}
+x: ${Math.round(detail.x)}  y: ${Math.round(detail.y)}
+width: ${Math.round(detail.width)}  height: ${Math.round(detail.height)}
+rotation: ${Math.round(detail.rotation)}deg
+source: ${detail.source}`;
+        };
+
+        transformDemo.addEventListener('transform-box-change', (event) => {
+          renderLog('transform-box-change', event.detail);
+        });
+
+        transformDemo.addEventListener('transform-box-commit', (event) => {
+          renderLog('transform-box-commit', event.detail);
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -7,7 +7,9 @@
   "sideEffects": [
     "./dist/index.js",
     "./dist/define-all.js",
+    "./dist/elements/drag-box.js",
     "./dist/elements/drag-scroll.js",
+    "./dist/elements/number-aware-input.js",
     "./dist/elements/transform-box.js"
   ],
   "exports": {
@@ -19,9 +21,17 @@
       "types": "./dist/define-all.d.ts",
       "import": "./dist/define-all.js"
     },
+    "./drag-box": {
+      "types": "./dist/elements/drag-box.element.d.ts",
+      "import": "./dist/elements/drag-box.js"
+    },
     "./drag-scroll": {
       "types": "./dist/elements/drag-scroll.element.d.ts",
       "import": "./dist/elements/drag-scroll.js"
+    },
+    "./number-aware-input": {
+      "types": "./dist/elements/number-aware-input.element.d.ts",
+      "import": "./dist/elements/number-aware-input.js"
     },
     "./transform-box": {
       "types": "./dist/elements/transform-box.element.d.ts",

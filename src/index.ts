@@ -1,4 +1,15 @@
+export {
+  CaskoUiDragBoxElement,
+  type DragBoxChangeDetail,
+  type DragBoxChangeSource,
+} from './elements/drag-box.element';
 export { CaskoUiDragScrollElement } from './elements/drag-scroll.element';
+export {
+  CaskoUiNumberAwareInputElement,
+  type NumberAwareInputCause,
+  type NumberAwareInputStateDetail,
+  type ParsedNumber,
+} from './elements/number-aware-input.element';
 export {
   CaskoUiTransformBoxElement,
   type TransformBoxChangeDetail,

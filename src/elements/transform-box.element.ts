@@ -1,14 +1,15 @@
 import { LitElement, css, html } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
+import {
+  getLocalPoint,
+  type DragPoint,
+} from './drag-box.controller';
+import './drag-box.element';
+import type { DragBoxChangeDetail } from './drag-box.element';
 
-export type TransformBoxChangeSource = "move" | "resize" | "rotate" | "keyboard";
-export type TransformBoxSelectSource = "pointer" | "focus" | "blur";
-type ResizeHandleName = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
-
-interface IPoint {
-  x: number;
-  y: number;
-}
+export type TransformBoxChangeSource = 'move' | 'resize' | 'rotate' | 'keyboard';
+export type TransformBoxSelectSource = 'pointer' | 'focus' | 'blur';
+type ResizeHandleName = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 interface ITransformBoxGeometry {
   x: number;
@@ -19,28 +20,24 @@ interface ITransformBoxGeometry {
 }
 
 interface IInteractionBase {
-  kind: TransformBoxChangeSource;
+  kind: Exclude<TransformBoxChangeSource, 'move' | 'keyboard'>;
   pointerId: number;
   captureElement: HTMLElement;
-  startPointer: IPoint;
+  startPointer: DragPoint;
   startGeometry: ITransformBoxGeometry;
 }
 
-interface IMoveInteraction extends IInteractionBase {
-  kind: "move";
-}
-
 interface IResizeInteraction extends IInteractionBase {
-  kind: "resize";
+  kind: 'resize';
   handle: ResizeHandleName;
 }
 
 interface IRotateInteraction extends IInteractionBase {
-  kind: "rotate";
+  kind: 'rotate';
   startAngle: number;
 }
 
-type TransformBoxInteraction = IMoveInteraction | IResizeInteraction | IRotateInteraction;
+type TransformBoxInteraction = IResizeInteraction | IRotateInteraction;
 
 export interface TransformBoxChangeDetail extends ITransformBoxGeometry {
   source: TransformBoxChangeSource;
@@ -62,8 +59,8 @@ const HANDLE_DIRECTIONS: Record<ResizeHandleName, { x: -1 | 0 | 1; y: -1 | 0 | 1
   w: { x: -1, y: 0 },
 };
 
-const CORNER_HANDLES: Array<ResizeHandleName> = ["nw", "ne", "se", "sw"];
-const SIDE_HANDLES: Array<ResizeHandleName> = ["n", "e", "s", "w"];
+const CORNER_HANDLES: Array<ResizeHandleName> = ['nw', 'ne', 'se', 'sw'];
+const SIDE_HANDLES: Array<ResizeHandleName> = ['n', 'e', 's', 'w'];
 
 function degreesToRadians(value: number): number {
   return (value * Math.PI) / 180;
@@ -73,7 +70,7 @@ function radiansToDegrees(value: number): number {
   return (value * 180) / Math.PI;
 }
 
-function rotatePoint(point: IPoint, angleDegrees: number): IPoint {
+function rotatePoint(point: DragPoint, angleDegrees: number): DragPoint {
   const radians = degreesToRadians(angleDegrees);
   const cosine = Math.cos(radians);
   const sine = Math.sin(radians);
@@ -84,7 +81,7 @@ function rotatePoint(point: IPoint, angleDegrees: number): IPoint {
   };
 }
 
-function getBoxCenter(geometry: ITransformBoxGeometry): IPoint {
+function getBoxCenter(geometry: ITransformBoxGeometry): DragPoint {
   return {
     x: geometry.x + geometry.width / 2,
     y: geometry.y + geometry.height / 2,
@@ -116,7 +113,7 @@ function getRotatedBounds(geometry: ITransformBoxGeometry) {
   };
 }
 
-@customElement("transform-box")
+@customElement('transform-box')
 export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Number })
   x = 0;
@@ -136,13 +133,13 @@ export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   selected = false;
 
-  @property({ type: Boolean, attribute: "show-when-unselected" })
+  @property({ type: Boolean, attribute: 'show-when-unselected' })
   showWhenUnselected = true;
 
   @property({ type: Boolean, reflect: true })
   disabled = false;
 
-  @property({ type: Boolean, attribute: "show-side-handles" })
+  @property({ type: Boolean, attribute: 'show-side-handles' })
   showSideHandles = false;
 
   @property({ type: Boolean, reflect: true })
@@ -154,27 +151,27 @@ export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   resizable = true;
 
-  @property({ type: Number, attribute: "keyboard-step" })
+  @property({ type: Number, attribute: 'keyboard-step' })
   keyboardStep = 1;
 
-  @property({ type: Number, attribute: "min-width" })
+  @property({ type: Number, attribute: 'min-width' })
   minWidth = 24;
 
-  @property({ type: Number, attribute: "min-height" })
+  @property({ type: Number, attribute: 'min-height' })
   minHeight = 24;
 
-  @property({ type: Boolean, attribute: "clamp-to-bounds" })
+  @property({ type: Boolean, attribute: 'clamp-to-bounds' })
   clampToBounds = false;
 
-  @property({ type: Boolean, attribute: "keep-proportions-on-resize" })
+  @property({ type: Boolean, attribute: 'keep-proportions-on-resize' })
   keepProportionsOnResize = false;
 
-  #interaction?: TransformBoxInteraction;
-  #pendingKeyboardCommit = false;
+  private interaction?: TransformBoxInteraction;
+  private pendingKeyboardCommit = false;
 
   connectedCallback() {
     super.connectedCallback();
-    if (!this.hasAttribute("tabindex")) {
+    if (!this.hasAttribute('tabindex')) {
       this.tabIndex = 0;
     }
   }
@@ -201,21 +198,29 @@ export class CaskoUiTransformBoxElement extends LitElement {
         @keyup=${this.#onKeyUp}
         @focus=${this.#onFocus}
         @blur=${this.#onBlur}>
-        <div
-          class="box ${this.selected ? "selected" : ""} ${this.disabled ? "disabled" : ""} ${visible ? "" : "hidden"}"
-          style=${this.#getBoxStyle(geometry)}
-          @pointerdown=${this.#onMovePointerDown}>
-          <div class="box-outline" aria-hidden="true"></div>
-          <div class="content">
-            <slot></slot>
+        <drag-box
+          .x=${geometry.x}
+          .y=${geometry.y}
+          ?disabled=${this.disabled || !this.movable}
+          .clampToBounds=${false}
+          @pointerdown=${this.#onMovePointerDown}
+          @drag-box-change=${this.#onDragChange}
+          @drag-box-commit=${this.#onDragCommit}>
+          <div
+            class="box ${this.selected ? 'selected' : ''} ${this.disabled ? 'disabled' : ''} ${visible ? '' : 'hidden'}"
+            style=${this.#getBoxStyle(geometry)}>
+            <div class="box-outline" aria-hidden="true"></div>
+            <div class="content">
+              <slot></slot>
+            </div>
+
+            ${this.resizable
+              ? handles.map((handle) => this.#renderResizeHandle(handle))
+              : null}
+
+            ${this.rotatable ? this.#renderRotateHandle() : null}
           </div>
-
-          ${this.resizable
-            ? handles.map((handle) => this.#renderResizeHandle(handle))
-            : null}
-
-          ${this.rotatable ? this.#renderRotateHandle() : null}
-        </div>
+        </drag-box>
       </div>
     `;
   }
@@ -226,6 +231,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
         type="button"
         class="handle handle-${handle}"
         data-handle=${handle}
+        data-drag-ignore
         aria-label=${`Resize ${handle}`}
         title=${`Resize ${handle}`}
         ?disabled=${this.disabled}
@@ -239,6 +245,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
       <button
         type="button"
         class="rotate-handle"
+        data-drag-ignore
         aria-label="Rotate box"
         title="Rotate box"
         ?disabled=${this.disabled}
@@ -259,20 +266,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
   #getBoxStyle(geometry: ITransformBoxGeometry): string {
     return [
-      `left:${geometry.x}px`,
-      `top:${geometry.y}px`,
       `width:${geometry.width}px`,
       `height:${geometry.height}px`,
       `transform:rotate(${geometry.rotation}deg)`,
-    ].join(";");
-  }
-
-  #getLocalPoint(event: PointerEvent): IPoint {
-    const bounds = this.getBoundingClientRect();
-    return {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
-    };
+    ].join(';');
   }
 
   #getHostSize() {
@@ -297,7 +294,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
     if (this.selected === nextSelected) return;
 
     this.selected = nextSelected;
-    this.#emitEvent<TransformBoxSelectDetail>("transform-box-select", {
+    this.#emitEvent<TransformBoxSelectDetail>('transform-box-select', {
       selected: this.selected,
       source,
     });
@@ -312,7 +309,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
     this.height = normalizedGeometry.height;
     this.rotation = normalizedGeometry.rotation;
 
-    this.#emitEvent<TransformBoxChangeDetail>("transform-box-change", {
+    this.#emitEvent<TransformBoxChangeDetail>('transform-box-change', {
       ...normalizedGeometry,
       source,
     });
@@ -320,7 +317,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
   #commitGeometry(source: TransformBoxChangeSource) {
     const geometry = this.#getNormalizedGeometry();
-    this.#emitEvent<TransformBoxChangeDetail>("transform-box-commit", {
+    this.#emitEvent<TransformBoxChangeDetail>('transform-box-commit', {
       ...geometry,
       source,
     });
@@ -366,22 +363,21 @@ export class CaskoUiTransformBoxElement extends LitElement {
   #beginInteraction(
     event: PointerEvent,
     interaction:
-      | Omit<IMoveInteraction, "pointerId" | "captureElement" | "startPointer" | "startGeometry">
-      | Omit<IResizeInteraction, "pointerId" | "captureElement" | "startPointer" | "startGeometry">
-      | Omit<IRotateInteraction, "pointerId" | "captureElement" | "startPointer" | "startGeometry">,
+      | Omit<IResizeInteraction, 'pointerId' | 'captureElement' | 'startPointer' | 'startGeometry'>
+      | Omit<IRotateInteraction, 'pointerId' | 'captureElement' | 'startPointer' | 'startGeometry'>,
   ) {
     if (this.disabled) return;
 
-    this.#setSelected(true, "pointer");
-    this.shadowRoot?.querySelector<HTMLElement>(".surface")?.focus();
+    this.#setSelected(true, 'pointer');
+    this.shadowRoot?.querySelector<HTMLElement>('.surface')?.focus();
 
     const captureElement = event.currentTarget as HTMLElement;
     const startGeometry = this.#getNormalizedGeometry();
-    const startPointer = this.#getLocalPoint(event);
+    const startPointer = getLocalPoint(this, event);
 
     captureElement.setPointerCapture(event.pointerId);
 
-    this.#interaction = {
+    this.interaction = {
       ...interaction,
       pointerId: event.pointerId,
       captureElement,
@@ -400,12 +396,35 @@ export class CaskoUiTransformBoxElement extends LitElement {
     const targetIsControl = path.some(
       (node) =>
         node instanceof HTMLElement &&
-        (node.classList.contains("handle") || node.classList.contains("rotate-handle")),
+        (node.classList.contains('handle') || node.classList.contains('rotate-handle')),
     );
 
     if (targetIsControl) return;
 
-    this.#beginInteraction(event, { kind: "move" });
+    this.#setSelected(true, 'pointer');
+    this.shadowRoot?.querySelector<HTMLElement>('.surface')?.focus();
+  };
+
+  #onDragChange = (event: CustomEvent<DragBoxChangeDetail>) => {
+    if (this.disabled || !this.movable) return;
+
+    event.stopPropagation();
+    const geometry = this.#getNormalizedGeometry();
+    this.#applyGeometry(
+      {
+        ...geometry,
+        x: event.detail.x,
+        y: event.detail.y,
+      },
+      'move',
+    );
+  };
+
+  #onDragCommit = (event: CustomEvent<DragBoxChangeDetail>) => {
+    if (this.disabled || !this.movable) return;
+
+    event.stopPropagation();
+    this.#commitGeometry('move');
   };
 
   #onResizePointerDown = (event: PointerEvent) => {
@@ -414,7 +433,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
     const handle = (event.currentTarget as HTMLElement).dataset.handle as ResizeHandleName | undefined;
     if (!handle) return;
 
-    this.#beginInteraction(event, { kind: "resize", handle });
+    this.#beginInteraction(event, { kind: 'resize', handle });
   };
 
   #onRotatePointerDown = (event: PointerEvent) => {
@@ -422,66 +441,53 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
     const geometry = this.#getNormalizedGeometry();
     const center = getBoxCenter(geometry);
-    const pointer = this.#getLocalPoint(event);
+    const pointer = getLocalPoint(this, event);
 
     this.#beginInteraction(event, {
-      kind: "rotate",
+      kind: 'rotate',
       startAngle: radiansToDegrees(Math.atan2(pointer.y - center.y, pointer.x - center.x)),
     });
   };
 
   #onPointerMove = (event: PointerEvent) => {
-    if (!this.#interaction || event.pointerId !== this.#interaction.pointerId) return;
+    if (!this.interaction || event.pointerId !== this.interaction.pointerId) return;
 
-    const pointer = this.#getLocalPoint(event);
-    const nextGeometry = this.#getGeometryForInteraction(this.#interaction, pointer);
-    this.#applyGeometry(nextGeometry, this.#interaction.kind);
+    const pointer = getLocalPoint(this, event);
+    const nextGeometry = this.#getGeometryForInteraction(this.interaction, pointer);
+    this.#applyGeometry(nextGeometry, this.interaction.kind);
   };
 
   #onPointerUp = (event: PointerEvent) => {
-    if (!this.#interaction || event.pointerId !== this.#interaction.pointerId) return;
+    if (!this.interaction || event.pointerId !== this.interaction.pointerId) return;
 
-    const interaction = this.#interaction;
+    const interaction = this.interaction;
     interaction.captureElement.releasePointerCapture(event.pointerId);
     this.#finishInteraction(interaction.kind);
   };
 
   #onLostPointerCapture = (event: PointerEvent) => {
-    if (!this.#interaction || event.pointerId !== this.#interaction.pointerId) return;
-    this.#finishInteraction(this.#interaction.kind);
+    if (!this.interaction || event.pointerId !== this.interaction.pointerId) return;
+    this.#finishInteraction(this.interaction.kind);
   };
 
-  #finishInteraction(source: TransformBoxChangeSource) {
-    this.#interaction = undefined;
+  #finishInteraction(source: Exclude<TransformBoxChangeSource, 'move' | 'keyboard'>) {
+    this.interaction = undefined;
     this.#commitGeometry(source);
   }
 
   #getGeometryForInteraction(
     interaction: TransformBoxInteraction,
-    pointer: IPoint,
+    pointer: DragPoint,
   ): ITransformBoxGeometry {
     switch (interaction.kind) {
-      case "move":
-        return this.#getMoveGeometry(interaction, pointer);
-      case "resize":
+      case 'resize':
         return this.#getResizeGeometry(interaction, pointer);
-      case "rotate":
+      case 'rotate':
         return this.#getRotateGeometry(interaction, pointer);
     }
   }
 
-  #getMoveGeometry(interaction: IMoveInteraction, pointer: IPoint): ITransformBoxGeometry {
-    const deltaX = pointer.x - interaction.startPointer.x;
-    const deltaY = pointer.y - interaction.startPointer.y;
-
-    return {
-      ...interaction.startGeometry,
-      x: interaction.startGeometry.x + deltaX,
-      y: interaction.startGeometry.y + deltaY,
-    };
-  }
-
-  #getResizeGeometry(interaction: IResizeInteraction, pointer: IPoint): ITransformBoxGeometry {
+  #getResizeGeometry(interaction: IResizeInteraction, pointer: DragPoint): ITransformBoxGeometry {
     const direction = HANDLE_DIRECTIONS[interaction.handle];
     const worldDelta = {
       x: pointer.x - interaction.startPointer.x,
@@ -549,7 +555,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
   #getProportionalResizeEdges(
     startGeometry: ITransformBoxGeometry,
     direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
-    localDelta: IPoint,
+    localDelta: DragPoint,
     edges: { left: number; right: number; top: number; bottom: number },
   ) {
     const aspectRatio = startGeometry.width / startGeometry.height || 1;
@@ -605,7 +611,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
     return { left, right, top, bottom };
   }
 
-  #getRotateGeometry(interaction: IRotateInteraction, pointer: IPoint): ITransformBoxGeometry {
+  #getRotateGeometry(interaction: IRotateInteraction, pointer: DragPoint): ITransformBoxGeometry {
     const center = getBoxCenter(interaction.startGeometry);
     const pointerAngle = radiansToDegrees(Math.atan2(pointer.y - center.y, pointer.x - center.x));
     const rotationDelta = pointerAngle - interaction.startAngle;
@@ -618,12 +624,12 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
   #onFocus = () => {
     if (this.disabled) return;
-    this.#setSelected(true, "focus");
+    this.#setSelected(true, 'focus');
   };
 
   #onBlur = () => {
-    if (this.#interaction) return;
-    this.#setSelected(false, "blur");
+    if (this.interaction) return;
+    this.#setSelected(false, 'blur');
   };
 
   #onKeyDown = (event: KeyboardEvent) => {
@@ -634,16 +640,16 @@ export class CaskoUiTransformBoxElement extends LitElement {
     let nextGeometry: ITransformBoxGeometry | undefined;
 
     switch (event.key) {
-      case "ArrowUp":
+      case 'ArrowUp':
         nextGeometry = { ...geometry, y: geometry.y - step };
         break;
-      case "ArrowDown":
+      case 'ArrowDown':
         nextGeometry = { ...geometry, y: geometry.y + step };
         break;
-      case "ArrowLeft":
+      case 'ArrowLeft':
         nextGeometry = { ...geometry, x: geometry.x - step };
         break;
-      case "ArrowRight":
+      case 'ArrowRight':
         nextGeometry = { ...geometry, x: geometry.x + step };
         break;
       default:
@@ -651,16 +657,16 @@ export class CaskoUiTransformBoxElement extends LitElement {
     }
 
     event.preventDefault();
-    this.#pendingKeyboardCommit = true;
-    this.#applyGeometry(nextGeometry, "keyboard");
+    this.pendingKeyboardCommit = true;
+    this.#applyGeometry(nextGeometry, 'keyboard');
   };
 
   #onKeyUp = (event: KeyboardEvent) => {
-    if (!this.#pendingKeyboardCommit) return;
-    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    if (!this.pendingKeyboardCommit) return;
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
 
-    this.#pendingKeyboardCommit = false;
-    this.#commitGeometry("keyboard");
+    this.pendingKeyboardCommit = false;
+    this.#commitGeometry('keyboard');
   };
 
   static styles = [
@@ -687,14 +693,17 @@ export class CaskoUiTransformBoxElement extends LitElement {
         height: 100%;
         min-height: inherit;
         outline: none;
-        pointer-events: none;
+      }
+
+      drag-box {
+        width: 100%;
+        height: 100%;
       }
 
       .box {
-        position: absolute;
+        position: relative;
         box-sizing: border-box;
         transform-origin: center center;
-        pointer-events: auto;
       }
 
       .box.disabled {
@@ -811,7 +820,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
       }
 
       .rotate-handle::after {
-        content: "";
+        content: '';
         position: absolute;
         left: 50%;
         top: 100%;
@@ -832,6 +841,6 @@ export default CaskoUiTransformBoxElement;
 
 declare global {
   interface HTMLElementTagNameMap {
-    "transform-box": CaskoUiTransformBoxElement;
+    'transform-box': CaskoUiTransformBoxElement;
   }
 }

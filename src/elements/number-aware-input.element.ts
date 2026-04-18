@@ -25,6 +25,8 @@ export interface ParsedNumber {
   activePart: 'integer' | 'fraction' | null;
 }
 
+type NumberPart = 'integer' | 'fraction';
+
 export interface NumberAwareInputStateDetail {
   value: string;
   previousValue: string;
@@ -83,6 +85,8 @@ function parseNumbers(
   decimalSeparator: '.' | ',',
   integerStep: number,
   decimalStep: number,
+  minValue?: number,
+  maxValue?: number,
 ): ParsedNumber[] {
   const matcher = getTokenPattern(decimalSeparator);
   const numbers: ParsedNumber[] = [];
@@ -94,6 +98,14 @@ function parseNumbers(
     const numericValue = Number(normalized);
 
     if (!Number.isFinite(numericValue)) {
+      continue;
+    }
+
+    if (minValue !== undefined && numericValue < minValue) {
+      continue;
+    }
+
+    if (maxValue !== undefined && numericValue > maxValue) {
       continue;
     }
 
@@ -185,6 +197,15 @@ function formatNumberToken(token: ParsedNumber, nextValue: number): string {
   return nextText;
 }
 
+function getTokenPartCaret(token: ParsedNumber, part: NumberPart): number {
+  if (!token.decimalSeparator || part === 'integer') {
+    return token.startIndex;
+  }
+
+  const decimalOffset = token.raw.indexOf(token.decimalSeparator);
+  return token.startIndex + decimalOffset + 1;
+}
+
 @customElement('number-aware-input')
 export class CaskoUiNumberAwareInputElement extends LitElement {
   @property({ type: String })
@@ -201,6 +222,15 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
   @property({ type: Number, attribute: 'step-decimal' })
   stepDecimal = 0.1;
+
+  @property({ type: String })
+  placeholder = '';
+
+  @property({ type: Number })
+  min = Number.NaN;
+
+  @property({ type: Number })
+  max = Number.NaN;
 
   @property({ type: Boolean, reflect: true })
   disabled = false;
@@ -252,7 +282,9 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       changedProperties.has('value') ||
       changedProperties.has('decimalSeparator') ||
       changedProperties.has('step') ||
-      changedProperties.has('stepDecimal')
+      changedProperties.has('stepDecimal') ||
+      changedProperties.has('min') ||
+      changedProperties.has('max')
     ) {
       this.#syncControlValue();
       this.#recomputeState(changedProperties.has('value') && !this.isInternalValueUpdate ? 'input' : 'selection');
@@ -282,6 +314,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
             id="control"
             class="control textarea"
             .value=${this.value}
+            placeholder=${this.placeholder}
             ?disabled=${this.disabled}
             ?readonly=${this.readonly}
             spellcheck="false"
@@ -301,6 +334,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
             class="control input"
             type="text"
             .value=${this.value}
+            placeholder=${this.placeholder}
             ?disabled=${this.disabled}
             ?readonly=${this.readonly}
             spellcheck="false"
@@ -406,12 +440,22 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     };
   }
 
+  #getMinValue(): number | undefined {
+    return Number.isFinite(this.min) ? this.min : undefined;
+  }
+
+  #getMaxValue(): number | undefined {
+    return Number.isFinite(this.max) ? this.max : undefined;
+  }
+
   #recomputeState(cause: NumberAwareInputCause, previousValue = this.value) {
     const decimalSeparator = this.#sanitizeDecimalSeparator();
     const step = this.#getStepValue(this.step, 1);
     const stepDecimal = this.#getStepValue(this.stepDecimal, 0.1);
+    const minValue = this.#getMinValue();
+    const maxValue = this.#getMaxValue();
 
-    this.parsedNumbers = parseNumbers(this.value, decimalSeparator, step, stepDecimal);
+    this.parsedNumbers = parseNumbers(this.value, decimalSeparator, step, stepDecimal, minValue, maxValue);
     this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     this.#emitEvent('number-aware-input-state-change', this.#createDetail(previousValue, cause));
     this.requestUpdate();
@@ -528,9 +572,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
-    control.setSelectionRange(firstNumber.startIndex, firstNumber.endIndex);
-    this.selectionStart = firstNumber.startIndex;
-    this.selectionEnd = firstNumber.endIndex;
+    this.#setCaretToTokenPart(firstNumber, 'integer');
   }
 
   #moveActiveNumber(direction: 1 | -1) {
@@ -541,6 +583,19 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
     this.#updateSelectionFromControl();
     const activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+
+    if (activeNumber?.decimalSeparator) {
+      if (direction === -1 && activeNumber.activePart === 'fraction') {
+        this.#setCaretToTokenPart(activeNumber, 'integer');
+        return;
+      }
+
+      if (direction === 1 && activeNumber.activePart === 'integer') {
+        this.#setCaretToTokenPart(activeNumber, 'fraction');
+        return;
+      }
+    }
+
     const currentIndex = activeNumber
       ? this.parsedNumbers.findIndex((token) => token.startIndex === activeNumber.startIndex)
       : -1;
@@ -550,11 +605,23 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
         ? fallbackIndex
         : Math.max(0, Math.min(this.parsedNumbers.length - 1, currentIndex + direction));
     const nextToken = this.parsedNumbers[nextIndex];
+    const nextPart: NumberPart =
+      nextToken.decimalSeparator && direction === -1 ? 'fraction' : 'integer';
 
-    control.setSelectionRange(nextToken.startIndex, nextToken.endIndex);
     control.focus();
-    this.selectionStart = nextToken.startIndex;
-    this.selectionEnd = nextToken.endIndex;
+    this.#setCaretToTokenPart(nextToken, nextPart);
+  }
+
+  #setCaretToTokenPart(token: ParsedNumber, part: NumberPart) {
+    const control = this.controlElement;
+    if (!control) {
+      return;
+    }
+
+    const caret = getTokenPartCaret(token, part);
+    control.setSelectionRange(caret, caret);
+    this.selectionStart = caret;
+    this.selectionEnd = caret;
     this.#recomputeState('selection');
     void this.updateComplete.then(() => this.#updateSpinnerPosition());
   }
@@ -651,25 +718,45 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     const previousValue = this.value;
-    const nextNumericValue = token.value + token.step * direction;
+    const unclampedNextValue = token.value + token.step * direction;
+    const minValue = this.#getMinValue();
+    const maxValue = this.#getMaxValue();
+    const nextNumericValue = Math.min(
+      maxValue ?? unclampedNextValue,
+      Math.max(minValue ?? unclampedNextValue, unclampedNextValue),
+    );
     const replacement = formatNumberToken(token, nextNumericValue);
+
+    if (replacement === token.raw) {
+      return;
+    }
+
     const nextValue =
       this.value.slice(0, token.startIndex) + replacement + this.value.slice(token.endIndex);
-    const selectionOffsetStart =
-      (this.selectionStart ?? token.endIndex) - token.startIndex;
-    const selectionOffsetEnd =
-      (this.selectionEnd ?? token.endIndex) - token.startIndex;
-    const nextSelectionStart = token.startIndex + Math.max(0, Math.min(replacement.length, selectionOffsetStart));
-    const nextSelectionEnd = token.startIndex + Math.max(0, Math.min(replacement.length, selectionOffsetEnd));
+    const nextPart: NumberPart =
+      token.decimalSeparator && token.activePart === 'fraction' ? 'fraction' : 'integer';
 
     this.isInternalValueUpdate = true;
     this.value = nextValue;
     this.previousCommittedValue = previousValue;
-    this.selectionStart = nextSelectionStart;
-    this.selectionEnd = nextSelectionEnd;
     control.value = nextValue;
-    control.setSelectionRange(nextSelectionStart, nextSelectionEnd);
     control.focus();
+    const reparsedNextToken = parseNumbers(
+      nextValue,
+      this.#sanitizeDecimalSeparator(),
+      this.#getStepValue(this.step, 1),
+      this.#getStepValue(this.stepDecimal, 0.1),
+      minValue,
+      maxValue,
+    ).find((entry) => entry.startIndex === token.startIndex);
+
+    if (reparsedNextToken) {
+      const nextCaret = getTokenPartCaret(reparsedNextToken, nextPart);
+      this.selectionStart = nextCaret;
+      this.selectionEnd = nextCaret;
+      control.setSelectionRange(nextCaret, nextCaret);
+    }
+
     this.#recomputeState(cause, previousValue);
     this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     void this.updateComplete.then(() => this.#updateSpinnerPosition());

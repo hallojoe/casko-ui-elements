@@ -11,6 +11,9 @@ export type NumberAwareInputCause =
   | 'blur'
   | 'commit';
 
+export type NumberAwareInputReadonlyMode = 'none' | 'all' | 'text' | 'number';
+export type NumberAwareInputPairLockMode = 'step' | 'all';
+
 export interface ParsedNumber {
   raw: string;
   value: number;
@@ -46,6 +49,19 @@ interface SpinnerPosition {
 }
 
 type SpinnerDirection = 1 | -1;
+
+interface TokenReplacement {
+  tokenIndex: number;
+  startIndex: number;
+  endIndex: number;
+  replacement: string;
+}
+
+interface InputSnapshot {
+  value: string;
+  numbers: ParsedNumber[];
+  activeTokenIndex: number;
+}
 
 const SPINNER_REPEAT_DELAY_MS = 320;
 const SPINNER_REPEAT_INTERVAL_MS = 70;
@@ -211,6 +227,25 @@ function getCssPixelValue(value: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function sanitizeReadonlyMode(value: string): NumberAwareInputReadonlyMode {
+  switch (value) {
+    case 'all':
+    case 'text':
+    case 'number':
+      return value;
+    default:
+      return 'none';
+  }
+}
+
+function sanitizePairLockMode(value: string): NumberAwareInputPairLockMode {
+  return value === 'all' ? 'all' : 'step';
+}
+
+function clampNumber(value: number, minValue?: number, maxValue?: number): number {
+  return Math.min(maxValue ?? value, Math.max(minValue ?? value, value));
+}
+
 @customElement('number-aware-input')
 export class CaskoUiNumberAwareInputElement extends LitElement {
   @property({ type: String })
@@ -243,6 +278,15 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   readonly = false;
 
+  @property({ type: String, attribute: 'readonly-mode', reflect: true })
+  readonlyMode: NumberAwareInputReadonlyMode = 'none';
+
+  @property({ type: Boolean, attribute: 'pair-lock', reflect: true })
+  pairLock = false;
+
+  @property({ type: String, attribute: 'pair-lock-mode', reflect: true })
+  pairLockMode: NumberAwareInputPairLockMode = 'step';
+
   @property({ type: Boolean, attribute: 'show-spinner', reflect: true })
   showSpinner = true;
 
@@ -264,6 +308,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   private spinnerRepeatTimeout?: number;
   private spinnerRepeatInterval?: number;
   private spinnerRepeatDirection?: SpinnerDirection;
+  private pendingInputSnapshot?: InputSnapshot;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -321,8 +366,9 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
             .value=${this.value}
             placeholder=${this.placeholder}
             ?disabled=${this.disabled}
-            ?readonly=${this.readonly}
+            ?readonly=${this.#getReadonlyMode() === 'all'}
             spellcheck="false"
+            @beforeinput=${this.#onBeforeInput}
             @input=${this.#onInput}
             @change=${this.#onNativeChange}
             @pointerdown=${this.#onControlPointerDown}
@@ -341,8 +387,9 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
             .value=${this.value}
             placeholder=${this.placeholder}
             ?disabled=${this.disabled}
-            ?readonly=${this.readonly}
+            ?readonly=${this.#getReadonlyMode() === 'all'}
             spellcheck="false"
+            @beforeinput=${this.#onBeforeInput}
             @input=${this.#onInput}
             @change=${this.#onNativeChange}
             @pointerdown=${this.#onControlPointerDown}
@@ -370,7 +417,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       !this.activeNumber ||
       !this.hasFocus ||
       this.disabled ||
-      this.readonly
+      this.#isStepperBlocked()
     ) {
       return nothing;
     }
@@ -421,6 +468,257 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
   #getStepValue(value: number, fallback: number): number {
     return Number.isFinite(value) && value > 0 ? value : fallback;
+  }
+
+  #getReadonlyMode(): NumberAwareInputReadonlyMode {
+    return this.readonly ? 'all' : sanitizeReadonlyMode(this.readonlyMode);
+  }
+
+  #getPairLockMode(): NumberAwareInputPairLockMode {
+    return sanitizePairLockMode(this.pairLockMode);
+  }
+
+  #isStepperBlocked(): boolean {
+    const readonlyMode = this.#getReadonlyMode();
+    return this.disabled || readonlyMode === 'all' || readonlyMode === 'number';
+  }
+
+  #isTextEditingBlocked(): boolean {
+    return this.disabled || this.#getReadonlyMode() === 'all';
+  }
+
+  #containsOnlyReadonlyTextCharacters(value: string): boolean {
+    const decimalSeparator = this.#sanitizeDecimalSeparator();
+    const escapedDecimalSeparator = decimalSeparator === '.' ? '\\.' : ',';
+    const allowedPattern = new RegExp(`^[\\d\\s+\\-${escapedDecimalSeparator}]*$`);
+    return allowedPattern.test(value);
+  }
+
+  #parseAllNumbers(value: string): ParsedNumber[] {
+    return parseNumbers(
+      value,
+      this.#sanitizeDecimalSeparator(),
+      this.#getStepValue(this.step, 1),
+      this.#getStepValue(this.stepDecimal, 0.1),
+    );
+  }
+
+  #hasSameNumericTokens(previousValue: string, nextValue: string): boolean {
+    const previousNumbers = this.#parseAllNumbers(previousValue);
+    const nextNumbers = this.#parseAllNumbers(nextValue);
+
+    if (previousNumbers.length !== nextNumbers.length) {
+      return false;
+    }
+
+    return previousNumbers.every(
+      (token, index) =>
+        token.raw === nextNumbers[index].raw &&
+        token.decimalSeparator === nextNumbers[index].decimalSeparator,
+    );
+  }
+
+  #isAcceptedInputValue(nextValue: string, previousValue: string): boolean {
+    switch (this.#getReadonlyMode()) {
+      case 'all':
+        return nextValue === previousValue;
+      case 'text':
+        return this.#containsOnlyReadonlyTextCharacters(nextValue);
+      case 'number':
+        return this.#hasSameNumericTokens(previousValue, nextValue);
+      default:
+        return true;
+    }
+  }
+
+  #getProposedValueFromBeforeInput(event: InputEvent): string | null {
+    const control = this.controlElement;
+    if (!control) {
+      return null;
+    }
+
+    const selectionStart = control.selectionStart ?? 0;
+    const selectionEnd = control.selectionEnd ?? selectionStart;
+    const before = control.value.slice(0, selectionStart);
+    const after = control.value.slice(selectionEnd);
+
+    switch (event.inputType) {
+      case 'insertText':
+      case 'insertCompositionText':
+      case 'insertReplacementText':
+      case 'insertFromPaste':
+      case 'insertFromDrop':
+        return `${before}${event.data ?? ''}${after}`;
+      case 'insertLineBreak':
+      case 'insertParagraph':
+        return `${before}\n${after}`;
+      case 'deleteContentBackward':
+        if (selectionStart !== selectionEnd) {
+          return `${before}${after}`;
+        }
+
+        return `${control.value.slice(0, Math.max(0, selectionStart - 1))}${after}`;
+      case 'deleteContentForward':
+        if (selectionStart !== selectionEnd) {
+          return `${before}${after}`;
+        }
+
+        return `${before}${control.value.slice(Math.min(control.value.length, selectionEnd + 1))}`;
+      case 'deleteByCut':
+      case 'deleteContent':
+      case 'deleteByDrag':
+      case 'deleteByComposition':
+        return `${before}${after}`;
+      default:
+        return null;
+    }
+  }
+
+  #findTokenIndex(token: ParsedNumber | null, numbers = this.parsedNumbers): number {
+    if (!token) {
+      return -1;
+    }
+
+    return numbers.findIndex((entry) => entry.startIndex === token.startIndex);
+  }
+
+  #getPairTokenIndex(activeIndex: number, totalTokens: number): number {
+    if (activeIndex < 0 || activeIndex >= totalTokens) {
+      return -1;
+    }
+
+    return activeIndex % 2 === 0
+      ? activeIndex + 1 < totalTokens
+        ? activeIndex + 1
+        : -1
+      : activeIndex - 1;
+  }
+
+  #getPairLockedValue(activeToken: ParsedNumber, nextActiveValue: number, pairedToken: ParsedNumber): number {
+    if (activeToken.value === 0) {
+      return pairedToken.value;
+    }
+
+    const nextValue = nextActiveValue * (pairedToken.value / activeToken.value);
+    return Number.isFinite(nextValue) ? nextValue : pairedToken.value;
+  }
+
+  #replaceTokenValues(value: string, replacements: TokenReplacement[]): string {
+    return [...replacements]
+      .sort((left, right) => right.startIndex - left.startIndex)
+      .reduce(
+        (nextValue, replacement) =>
+          nextValue.slice(0, replacement.startIndex) +
+          replacement.replacement +
+          nextValue.slice(replacement.endIndex),
+        value,
+      );
+  }
+
+  #createInputSnapshot(): InputSnapshot {
+    const numbers = [...this.parsedNumbers];
+    const activeTokenIndex = this.#findTokenIndex(this.activeNumber, numbers);
+    return {
+      value: this.value,
+      numbers,
+      activeTokenIndex,
+    };
+  }
+
+  #getSelectionWithinToken(
+    selectionStart: number | null,
+    selectionEnd: number | null,
+    token: ParsedNumber,
+  ) {
+    const startOffset =
+      selectionStart === null ? 0 : Math.max(0, Math.min(token.length, selectionStart - token.startIndex));
+    const endOffset =
+      selectionEnd === null ? startOffset : Math.max(0, Math.min(token.length, selectionEnd - token.startIndex));
+
+    return {
+      startOffset,
+      endOffset,
+    };
+  }
+
+  #syncPairLockedDirectEdit(
+    nextValue: string,
+    snapshot: InputSnapshot,
+    selectionStart: number | null,
+    selectionEnd: number | null,
+  ) {
+    if (!this.pairLock || this.#getPairLockMode() !== 'all' || snapshot.activeTokenIndex === -1) {
+      return null;
+    }
+
+    const pairTokenIndex = this.#getPairTokenIndex(snapshot.activeTokenIndex, snapshot.numbers.length);
+
+    if (pairTokenIndex === -1) {
+      return null;
+    }
+
+    const nextNumbers = this.#parseAllNumbers(nextValue);
+
+    if (
+      nextNumbers.length !== snapshot.numbers.length ||
+      snapshot.activeTokenIndex >= nextNumbers.length ||
+      pairTokenIndex >= nextNumbers.length
+    ) {
+      return null;
+    }
+
+    const previousActiveToken = snapshot.numbers[snapshot.activeTokenIndex];
+    const nextActiveToken = nextNumbers[snapshot.activeTokenIndex];
+    const previousPairToken = snapshot.numbers[pairTokenIndex];
+    const nextPairToken = nextNumbers[pairTokenIndex];
+
+    if (
+      previousActiveToken.raw === nextActiveToken.raw ||
+      previousPairToken.raw !== nextPairToken.raw
+    ) {
+      return null;
+    }
+
+    const nextPairValue = this.#getPairLockedValue(
+      previousActiveToken,
+      nextActiveToken.value,
+      previousPairToken,
+    );
+    const pairReplacement = formatNumberToken(nextPairToken, nextPairValue);
+
+    if (pairReplacement === nextPairToken.raw) {
+      return null;
+    }
+
+    const adjustedValue = this.#replaceTokenValues(nextValue, [
+      {
+        tokenIndex: pairTokenIndex,
+        startIndex: nextPairToken.startIndex,
+        endIndex: nextPairToken.endIndex,
+        replacement: pairReplacement,
+      },
+    ]);
+
+    const adjustedNumbers = this.#parseAllNumbers(adjustedValue);
+    const adjustedActiveToken = adjustedNumbers[snapshot.activeTokenIndex];
+
+    if (!adjustedActiveToken) {
+      return {
+        value: adjustedValue,
+        selectionStart,
+        selectionEnd,
+      };
+    }
+
+    const offsets = this.#getSelectionWithinToken(selectionStart, selectionEnd, nextActiveToken);
+    const nextSelectionStart = adjustedActiveToken.startIndex + Math.min(offsets.startOffset, adjustedActiveToken.length);
+    const nextSelectionEnd = adjustedActiveToken.startIndex + Math.min(offsets.endOffset, adjustedActiveToken.length);
+
+    return {
+      value: adjustedValue,
+      selectionStart: nextSelectionStart,
+      selectionEnd: nextSelectionEnd,
+    };
   }
 
   #emitEvent<T>(eventName: string, detail: T) {
@@ -482,11 +780,47 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   #onInput = (event: Event) => {
     const input = event.currentTarget as TextControl;
     const previousValue = this.value;
+    const initialNextValue = input.value;
+
+    if (!this.#isAcceptedInputValue(initialNextValue, previousValue)) {
+      input.value = previousValue;
+
+      if (this.selectionStart !== null && this.selectionEnd !== null) {
+        input.setSelectionRange(this.selectionStart, this.selectionEnd);
+      }
+
+      this.#syncControlValue();
+      this.#recomputeState('selection');
+      return;
+    }
+
+    let nextValue = initialNextValue;
+    let nextSelectionStart = input.selectionStart;
+    let nextSelectionEnd = input.selectionEnd;
+    const pairLockResult = this.#syncPairLockedDirectEdit(
+      nextValue,
+      this.pendingInputSnapshot ?? this.#createInputSnapshot(),
+      nextSelectionStart,
+      nextSelectionEnd,
+    );
+
+    if (pairLockResult) {
+      nextValue = pairLockResult.value;
+      nextSelectionStart = pairLockResult.selectionStart;
+      nextSelectionEnd = pairLockResult.selectionEnd;
+      input.value = nextValue;
+
+      if (nextSelectionStart !== null && nextSelectionEnd !== null) {
+        input.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+      }
+    }
 
     this.isInternalValueUpdate = true;
-    this.value = input.value;
-    this.#updateSelectionFromControl();
+    this.value = nextValue;
+    this.selectionStart = nextSelectionStart;
+    this.selectionEnd = nextSelectionEnd;
     this.#recomputeState('input', previousValue);
+    this.pendingInputSnapshot = undefined;
   };
 
   #onNativeChange = () => {
@@ -525,8 +859,28 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     this.suppressAutoFocusSelection = true;
   };
 
+  #onBeforeInput = (event: InputEvent) => {
+    if (this.#isTextEditingBlocked()) {
+      event.preventDefault();
+      return;
+    }
+
+    this.#updateSelectionFromControl();
+    this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+    this.pendingInputSnapshot = this.#createInputSnapshot();
+    const proposedValue = this.#getProposedValueFromBeforeInput(event);
+
+    if (proposedValue === null) {
+      return;
+    }
+
+    if (!this.#isAcceptedInputValue(proposedValue, this.value)) {
+      event.preventDefault();
+    }
+  };
+
   #onKeyDown = (event: KeyboardEvent) => {
-    if (this.disabled || this.readonly) {
+    if (this.disabled || this.#getReadonlyMode() === 'all') {
       return;
     }
 
@@ -549,6 +903,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      if (this.#isStepperBlocked()) {
+        return;
+      }
+
       this.#updateSelectionFromControl();
       this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
 
@@ -676,7 +1034,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #startSpinnerRepeat(event: PointerEvent, direction: SpinnerDirection) {
-    if (this.disabled || this.readonly || !this.activeNumber) {
+    if (this.#isStepperBlocked() || !this.activeNumber) {
       return;
     }
 
@@ -724,26 +1082,57 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     const token = this.activeNumber;
     const control = this.controlElement;
 
-    if (!token || !control) {
+    if (!token || !control || this.#isStepperBlocked()) {
       return;
     }
 
     const previousValue = this.value;
-    const unclampedNextValue = token.value + token.step * direction;
     const minValue = this.#getMinValue();
     const maxValue = this.#getMaxValue();
-    const nextNumericValue = Math.min(
-      maxValue ?? unclampedNextValue,
-      Math.max(minValue ?? unclampedNextValue, unclampedNextValue),
-    );
-    const replacement = formatNumberToken(token, nextNumericValue);
+    const activeTokenIndex = this.#findTokenIndex(token);
 
-    if (replacement === token.raw) {
+    if (activeTokenIndex === -1) {
       return;
     }
 
-    const nextValue =
-      this.value.slice(0, token.startIndex) + replacement + this.value.slice(token.endIndex);
+    const nextNumericValue = clampNumber(token.value + token.step * direction, minValue, maxValue);
+    const replacements: TokenReplacement[] = [
+      {
+        tokenIndex: activeTokenIndex,
+        startIndex: token.startIndex,
+        endIndex: token.endIndex,
+        replacement: formatNumberToken(token, nextNumericValue),
+      },
+    ];
+
+    if (this.pairLock) {
+      const pairedTokenIndex = this.#getPairTokenIndex(activeTokenIndex, this.parsedNumbers.length);
+
+      if (pairedTokenIndex !== -1) {
+        const pairedToken = this.parsedNumbers[pairedTokenIndex];
+        const nextPairedValue = clampNumber(
+          this.#getPairLockedValue(token, nextNumericValue, pairedToken),
+          minValue,
+          maxValue,
+        );
+
+        replacements.push({
+          tokenIndex: pairedTokenIndex,
+          startIndex: pairedToken.startIndex,
+          endIndex: pairedToken.endIndex,
+          replacement: formatNumberToken(pairedToken, nextPairedValue),
+        });
+      }
+    }
+
+    if (replacements.every((replacement) => {
+      const currentToken = this.parsedNumbers[replacement.tokenIndex];
+      return currentToken && replacement.replacement === currentToken.raw;
+    })) {
+      return;
+    }
+
+    const nextValue = this.#replaceTokenValues(this.value, replacements);
     const nextPart: NumberPart =
       token.decimalSeparator && token.activePart === 'fraction' ? 'fraction' : 'integer';
 
@@ -759,7 +1148,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       this.#getStepValue(this.stepDecimal, 0.1),
       minValue,
       maxValue,
-    ).find((entry) => entry.startIndex === token.startIndex);
+    )[activeTokenIndex];
 
     if (reparsedNextToken) {
       const nextCaret = getTokenPartCaret(reparsedNextToken, nextPart);
@@ -804,7 +1193,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       !this.showSpinner ||
       !this.hasFocus ||
       this.disabled ||
-      this.readonly
+      this.#isStepperBlocked()
     ) {
       this.#setSpinnerPosition({ top: 0, left: 0, visible: false });
       return;

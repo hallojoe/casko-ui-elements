@@ -7,9 +7,18 @@ export { CaskoUiDragScrollElement } from './elements/drag-scroll.element';
 export {
   CaskoUiNumberAwareInputElement,
   type NumberAwareInputCause,
+  type NumberAwareInputPairLockMode,
+  type NumberAwareInputReadonlyMode,
   type NumberAwareInputStateDetail,
   type ParsedNumber,
 } from './elements/number-aware-input.element';
+export {
+  CaskoUiSelectionBoxElement,
+  type SelectionBoxChangeDetail,
+  type SelectionBoxChangeSource,
+  type SelectionBoxItemDetail,
+  type SelectionBoxMode,
+} from './elements/selection-box.element';
 export {
   CaskoUiTransformBoxElement,
   type TransformBoxChangeDetail,

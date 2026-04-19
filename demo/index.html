@@ -189,6 +189,202 @@
       number-aware-input {
         --number-aware-input-radius: 16px;
       }
+
+      selection-box {
+        --selection-box-selected-outline: none;
+        --selection-box-selected-outline-offset: 0px;
+        --selection-box-selected-background: rgba(216, 104, 45, 0.12);
+        --selection-box-selected-shadow:
+          inset 0 0 0 2px rgba(216, 104, 45, 0.92),
+          0 0 0 1px rgba(216, 104, 45, 0.16);
+        --selection-box-preview-outline: none;
+        --selection-box-preview-outline-offset: 0px;
+        --selection-box-preview-background: rgba(59, 130, 246, 0.08);
+        --selection-box-preview-shadow:
+          inset 0 0 0 2px rgba(59, 130, 246, 0.92),
+          0 0 0 1px rgba(59, 130, 246, 0.18);
+        --selection-box-drag-outline: 1px solid rgba(216, 104, 45, 0.75);
+        --selection-box-drag-background: rgba(216, 104, 45, 0.14);
+      }
+
+      .selection-demo {
+        display: grid;
+        gap: 14px;
+      }
+
+      .selection-group {
+        display: grid;
+        gap: 12px;
+      }
+
+      .selection-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+      }
+
+      .selection-item {
+        min-height: 92px;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 84, 73, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        cursor: pointer;
+      }
+
+      .selection-item strong {
+        font-size: 0.95rem;
+      }
+
+      .selection-item span {
+        color: #55726b;
+        font-size: 0.88rem;
+        line-height: 1.35;
+      }
+
+      .selection-item .nested-chip {
+        width: fit-content;
+        border-radius: 999px;
+        padding: 3px 10px;
+        background: rgba(15, 84, 73, 0.1);
+        color: #17322d;
+        font-size: 0.75rem;
+      }
+
+      .selection-item[ignore] {
+        opacity: 0.62;
+        cursor: default;
+      }
+
+      .drag-select-stage {
+        min-height: 300px;
+      }
+
+      .drag-select-items {
+        display: block;
+        width: 100%;
+        height: 300px;
+      }
+
+      .drag-select-card {
+        position: absolute;
+        width: 120px;
+        min-height: 84px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 84, 73, 0.1);
+        background: rgba(255, 255, 255, 0.92);
+        display: grid;
+        gap: 8px;
+      }
+
+      .drag-select-card:nth-child(1) { left: 24px; top: 26px; }
+      .drag-select-card:nth-child(2) { left: 188px; top: 44px; }
+      .drag-select-card:nth-child(3) { left: 74px; top: 170px; }
+      .drag-select-card:nth-child(4) { left: 250px; top: 164px; }
+
+      .combo-stage {
+        position: relative;
+        min-height: 460px;
+      }
+
+      .combo-controls {
+        display: grid;
+        gap: 12px;
+      }
+
+      .combo-controls-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .combo-step-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #43615a;
+        font-size: 0.92rem;
+      }
+
+      .combo-step-input {
+        width: 72px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(15, 84, 73, 0.18);
+        background: rgba(255, 255, 255, 0.92);
+        color: #17322d;
+        font: inherit;
+      }
+
+      .combo-button {
+        appearance: none;
+        border: 1px solid rgba(15, 84, 73, 0.18);
+        border-radius: 12px;
+        padding: 9px 14px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #17322d;
+        font: 600 0.92rem/1 "Segoe UI", sans-serif;
+        cursor: pointer;
+        transition:
+          transform 140ms ease,
+          border-color 140ms ease,
+          background 140ms ease,
+          box-shadow 140ms ease;
+      }
+
+      .combo-button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(15, 84, 73, 0.28);
+        box-shadow: 0 10px 22px rgba(15, 84, 73, 0.08);
+      }
+
+      .combo-button:active {
+        transform: translateY(0);
+      }
+
+      .combo-selection-box {
+        display: block;
+        width: 100%;
+        height: 460px;
+        --selection-box-selected-outline: none;
+        --selection-box-selected-background: transparent;
+        --selection-box-selected-outline-offset: 0px;
+        --selection-box-selected-shadow: none;
+        --selection-box-preview-outline: none;
+        --selection-box-preview-background: transparent;
+        --selection-box-preview-outline-offset: 0px;
+        --selection-box-preview-shadow: none;
+      }
+
+      .combo-selection-box transform-box {
+        width: 100%;
+        height: 460px;
+      }
+
+      .combo-selection-box drag-box {
+        width: 100%;
+        height: 460px;
+      }
+
+      .combo-selection-box drag-box[value="note-b"] .draggable-note {
+        background: linear-gradient(135deg, #355b8e, #73aaf5);
+        box-shadow: 0 18px 36px rgba(53, 91, 142, 0.2);
+      }
+
+      .combo-selection-box drag-box[selected] .draggable-note {
+        box-shadow:
+          0 0 0 2px rgba(216, 104, 45, 0.9),
+          0 24px 40px rgba(216, 104, 45, 0.18);
+      }
+
+      .combo-selection-box .draggable-note {
+        transition: box-shadow 140ms ease;
+      }
     </style>
   </head>
   <body>
@@ -236,20 +432,169 @@
         </article>
 
         <article class="panel">
+          <h2>Selection Box</h2>
+          <p class="hint">
+            Click a card to toggle it. In multi mode, plain click behaves like single selection and
+            <kbd>Shift</kbd>+click adds or removes extra selections.
+          </p>
+          <div class="selection-demo">
+            <div class="selection-group">
+              <p class="subtle">Single mode</p>
+              <selection-box id="selection-single-demo" class="selection-items">
+                <article class="selection-item" value="alpha" selected>
+                  <strong>Alpha</strong>
+                  <span>Starts selected and deselects on click.</span>
+                </article>
+                <article class="selection-item" value="beta">
+                  <strong>Beta</strong>
+                  <span>Plain click moves selection here.</span>
+                </article>
+                <article class="selection-item" value="gamma" ignore>
+                  <strong>Ignored</strong>
+                  <span>This direct child never changes selection.</span>
+                </article>
+              </selection-box>
+            </div>
+
+            <div class="selection-group">
+              <p class="subtle">Multi mode</p>
+              <selection-box
+                id="selection-multi-demo"
+                class="selection-items"
+                selection-mode="multiple"
+                multi-select-key="shift">
+                <article class="selection-item" value="one" selected>
+                  <strong>One</strong>
+                  <span>Plain click resets to one; Shift-click toggles extras.</span>
+                  <div class="nested-chip">Nested content</div>
+                </article>
+                <article class="selection-item" value="two">
+                  <strong>Two</strong>
+                  <span><kbd>Shift</kbd>+click adds or removes this item.</span>
+                </article>
+                <article class="selection-item" value="three" selected>
+                  <strong>Three</strong>
+                  <span>Initial extras are adopted in multi mode.</span>
+                </article>
+                <article class="selection-item" value="four">
+                  <strong>Four</strong>
+                  <span>Nested clicks still target the direct child item.</span>
+                  <div class="nested-chip">Nested content</div>
+                </article>
+              </selection-box>
+            </div>
+
+            <div class="selection-group">
+              <p class="subtle">Multiple toggle mode</p>
+              <selection-box
+                id="selection-toggle-demo"
+                class="selection-items"
+                selection-mode="multiple"
+                multi-select-key="none">
+                <article class="selection-item" value="red" selected>
+                  <strong>Red</strong>
+                  <span>Plain click toggles this item only.</span>
+                </article>
+                <article class="selection-item" value="green">
+                  <strong>Green</strong>
+                  <span>Existing selections stay untouched.</span>
+                </article>
+                <article class="selection-item" value="blue">
+                  <strong>Blue</strong>
+                  <span>Use this mode for checkbox-like selection.</span>
+                </article>
+              </selection-box>
+            </div>
+
+            <div class="selection-group">
+              <p class="subtle">Drag select</p>
+              <div class="stage drag-select-stage">
+                <selection-box
+                  id="selection-drag-demo"
+                  class="drag-select-items"
+                  selection-mode="multiple"
+                  multi-select-key="none"
+                  deselect-on-outside-click
+                  drag-select>
+                  <article class="drag-select-card" value="north">
+                    <strong>North</strong>
+                    <span>Drag from empty space to add me. Click outside to clear.</span>
+                  </article>
+                  <article class="drag-select-card" value="east">
+                    <strong>East</strong>
+                    <span>Overlap selects me.</span>
+                  </article>
+                  <article class="drag-select-card" value="south" selected>
+                    <strong>South</strong>
+                    <span>Existing selection is preserved.</span>
+                  </article>
+                  <article class="drag-select-card" value="west">
+                    <strong>West</strong>
+                    <span>Drag selection is additive.</span>
+                  </article>
+                </selection-box>
+              </div>
+            </div>
+
+            <div class="log" id="selection-log">Waiting for selection...</div>
+          </div>
+        </article>
+
+        <article class="panel">
           <h2>Number Aware Input</h2>
           <p class="hint">
             Place the caret inside any number, then use arrow up/down or the inline controls to
-            adjust just that token without touching the surrounding text.
+            adjust just that token without touching the surrounding text. Pair lock can step
+            neighboring values together, and readonly modes can selectively block text or numbers.
           </p>
           <div class="stack">
+            <p class="subtle">Basic token stepping</p>
             <number-aware-input
               id="number-input-demo"
+              data-number-label="basic"
               value="101 202 300.333"
               step="1"
               step-decimal="0.25"></number-aware-input>
 
+            <p class="subtle">Pair lock keeps adjacent values in ratio during stepping, while direct edits stay independent by default</p>
+            <number-aware-input
+              id="number-pair-lock-demo"
+              data-number-label="pair-lock"
+              pair-lock
+              value="100 200 40 80"
+              step="5"
+              step-decimal="0.5"></number-aware-input>
+
+            <p class="subtle">Use <code>pair-lock-mode="all"</code> when direct edits should also update the pair</p>
+            <number-aware-input
+              id="number-pair-lock-all-demo"
+              data-number-label="pair-lock-all"
+              pair-lock
+              pair-lock-mode="all"
+              value="60 120 30 90"
+              step="5"
+              step-decimal="0.5"></number-aware-input>
+
+            <p class="subtle">Readonly text allows numeric-only editing</p>
+            <number-aware-input
+              id="number-readonly-text-demo"
+              data-number-label="readonly-text"
+              readonly-mode="text"
+              value="120 240 360"
+              step="10"></number-aware-input>
+
+            <p class="subtle">Readonly number protects numeric tokens while text stays editable</p>
+            <number-aware-input
+              id="number-readonly-number-demo"
+              data-number-label="readonly-number"
+              readonly-mode="number"
+              value="Width 120 Height 240"
+              step="10"></number-aware-input>
+
+            <p class="subtle">Multiline number-aware editing</p>
             <number-aware-input
               id="number-textarea-demo"
+              data-number-label="textarea"
               multiline
               value="We are 80 people and have 20 tables in 2.3 hours"
               step="1"
@@ -287,6 +632,92 @@
           </div>
           <div class="log" id="event-log">Waiting for interaction...</div>
         </article>
+
+        <article class="panel">
+          <h2>Combined Stage</h2>
+          <p class="hint">
+            This stage lets <code>selection-box</code> manage selection while <code>drag-box</code>
+            and <code>transform-box</code> keep handling movement and transforms. Plain click picks
+            one item, and <kbd>Shift</kbd>+click adds more selections.
+          </p>
+          <div class="combo-controls">
+            <div class="combo-controls-bar">
+              <label class="combo-step-label" for="combo-step-input">
+                Nudge step
+                <input
+                  id="combo-step-input"
+                  class="combo-step-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="16" />
+              </label>
+              <button type="button" class="combo-button" data-combo-move="up">Up</button>
+              <button type="button" class="combo-button" data-combo-move="left">Left</button>
+              <button type="button" class="combo-button" data-combo-move="right">Right</button>
+              <button type="button" class="combo-button" data-combo-move="down">Down</button>
+            </div>
+            <p class="subtle">
+              These buttons sit outside the stage and move the currently selected items in
+              <code>x</code> and <code>y</code>.
+            </p>
+          </div>
+          <div class="stage combo-stage">
+            <selection-box
+              id="combo-selection-demo"
+              class="combo-selection-box"
+              selection-mode="multiple"
+              multi-select-key="shift">
+              <transform-box
+                value="promo-tile"
+                x="54"
+                y="52"
+                width="180"
+                height="132"
+                rotation="-6"
+                selected
+                selection-controlled
+                show-side-handles
+                movable
+                resizable
+                rotatable>
+                <div class="card-art">Promo Tile</div>
+              </transform-box>
+
+              <transform-box
+                value="quote-card"
+                x="228"
+                y="210"
+                width="210"
+                height="118"
+                rotation="4"
+                selection-controlled
+                show-side-handles
+                movable
+                resizable
+                rotatable>
+                <div class="card-art" style="background: linear-gradient(135deg, #2f4f7b 0%, #679de8 52%, #d6e4ff 100%);">
+                  Quote Card
+                </div>
+              </transform-box>
+
+              <drag-box id="combo-note-a" value="note-a" x="256" y="72">
+                <article class="draggable-note">
+                  <strong>Sticky Note A</strong>
+                  <span>Selection comes from the wrapper, movement comes from drag-box.</span>
+                </article>
+              </drag-box>
+
+              <drag-box id="combo-note-b" value="note-b" x="160" y="286">
+                <article class="draggable-note">
+                  <strong>Sticky Note B</strong>
+                  <span>Shift-click to keep both notes or mix notes with transform cards.</span>
+                </article>
+              </drag-box>
+            </selection-box>
+          </div>
+          <div class="log" id="combo-log">Waiting for combined interactions...</div>
+        </article>
       </section>
     </main>
 
@@ -295,9 +726,24 @@
       const log = document.querySelector('#event-log');
       const dragBoxDemo = document.querySelector('#drag-box-demo');
       const dragLog = document.querySelector('#drag-log');
-      const numberInputDemo = document.querySelector('#number-input-demo');
-      const numberTextareaDemo = document.querySelector('#number-textarea-demo');
+      const numberDemos = Array.from(document.querySelectorAll('number-aware-input[data-number-label]'));
       const numberLog = document.querySelector('#number-log');
+      const selectionSingleDemo = document.querySelector('#selection-single-demo');
+      const selectionMultiDemo = document.querySelector('#selection-multi-demo');
+      const selectionToggleDemo = document.querySelector('#selection-toggle-demo');
+      const selectionDragDemo = document.querySelector('#selection-drag-demo');
+      const selectionLog = document.querySelector('#selection-log');
+      const comboSelectionDemo = document.querySelector('#combo-selection-demo');
+      const comboLog = document.querySelector('#combo-log');
+      const comboStepInput = document.querySelector('#combo-step-input');
+      const comboMoveButtons = Array.from(document.querySelectorAll('[data-combo-move]'));
+
+      customElements.whenDefined('transform-box').then(() => {
+        const comboTransformBoxes = comboSelectionDemo?.querySelectorAll('transform-box') ?? [];
+        comboTransformBoxes.forEach((element) => {
+          element.showControlsWhenUnselected = false;
+        });
+      });
 
       if (dragBoxDemo && dragLog) {
         const renderDragLog = (label, detail) => {
@@ -333,7 +779,184 @@ source: ${detail.source}`;
         });
       }
 
-      if (numberLog && numberInputDemo && numberTextareaDemo) {
+      if (selectionLog && selectionSingleDemo && selectionMultiDemo && selectionToggleDemo && selectionDragDemo) {
+        const renderSelectionLog = (label, detail) => {
+          const selectedValues = detail.selectedItems.map((item) => item.value ?? '(null)').join(', ');
+          const changedValues = detail.changedItems
+            .map((item) => `${item.value ?? '(null)'}:${item.selected ? 'selected' : 'deselected'}`)
+            .join(', ');
+
+          selectionLog.textContent = `${label}
+mode: ${detail.mode}
+source: ${detail.source}
+selected: ${selectedValues || 'none'}
+changed: ${changedValues || 'none'}
+items: ${detail.items.map((item) => `${item.value ?? '(null)'}=${item.selected}`).join(', ')}`;
+        };
+
+        const bindSelectionLog = (element, label) => {
+          element.addEventListener('selection-box-change', (event) => {
+            renderSelectionLog(`${label} change`, event.detail);
+          });
+
+          element.addEventListener('selection-box-commit', (event) => {
+            renderSelectionLog(`${label} commit`, event.detail);
+          });
+        };
+
+        bindSelectionLog(selectionSingleDemo, 'single');
+        bindSelectionLog(selectionMultiDemo, 'multi');
+        bindSelectionLog(selectionToggleDemo, 'toggle');
+        bindSelectionLog(selectionDragDemo, 'drag');
+      }
+
+      if (comboSelectionDemo && comboLog) {
+        let activeGroupMove = null;
+        const comboDirections = {
+          up: { x: 0, y: -1 },
+          left: { x: -1, y: 0 },
+          right: { x: 1, y: 0 },
+          down: { x: 0, y: 1 },
+        };
+
+        const getComboItems = () => Array.from(comboSelectionDemo.children);
+        const getSelectedComboItems = () => getComboItems().filter((element) => element.hasAttribute('selected'));
+        const getItemPosition = (element) => ({
+          x: Number(element.x ?? 0),
+          y: Number(element.y ?? 0),
+        });
+        const getComboStep = () => {
+          const rawValue = Number(comboStepInput?.value ?? 16);
+          return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : 16;
+        };
+        const getDirectComboItemFromEvent = (event) =>
+          event.composedPath().find((node) => node instanceof HTMLElement && node.parentElement === comboSelectionDemo);
+        const moveSelectedComboItems = (deltaX, deltaY) => {
+          const selectedItems = getSelectedComboItems();
+          if (!selectedItems.length) {
+            renderComboLog('external-controls', ['selected: none', 'action: no items to move']);
+            return;
+          }
+
+          selectedItems.forEach((element) => {
+            element.x = Number(element.x ?? 0) + deltaX;
+            element.y = Number(element.y ?? 0) + deltaY;
+          });
+
+          renderComboLog('external-controls', [
+            `selected: ${selectedItems.map((element) => element.getAttribute('value') ?? '(null)').join(', ')}`,
+            `delta: ${deltaX} / ${deltaY}`,
+            `step: ${getComboStep()}`,
+          ]);
+        };
+
+        comboSelectionDemo.addEventListener('pointerdown', (event) => {
+          const origin = getDirectComboItemFromEvent(event);
+          if (!origin || !origin.hasAttribute('selected')) {
+            activeGroupMove = null;
+            return;
+          }
+
+          const selectedItems = getSelectedComboItems();
+          if (selectedItems.length < 2) {
+            activeGroupMove = null;
+            return;
+          }
+
+          activeGroupMove = {
+            origin,
+            positions: new Map(selectedItems.map((element) => [element, getItemPosition(element)])),
+          };
+        });
+
+        const applyGroupMove = (event, nextPosition, source) => {
+          if (source !== 'move') {
+            return;
+          }
+
+          const origin = event.target;
+          if (!activeGroupMove || activeGroupMove.origin !== origin) {
+            return;
+          }
+
+          const originStart = activeGroupMove.positions.get(origin);
+          if (!originStart) {
+            return;
+          }
+
+          const deltaX = nextPosition.x - originStart.x;
+          const deltaY = nextPosition.y - originStart.y;
+
+          activeGroupMove.positions.forEach((position, element) => {
+            if (element === origin) {
+              return;
+            }
+
+            element.x = position.x + deltaX;
+            element.y = position.y + deltaY;
+          });
+        };
+
+        const renderComboLog = (label, lines) => {
+          comboLog.textContent = `${label}
+${lines.join('\n')}`;
+        };
+
+        comboSelectionDemo.addEventListener('selection-box-change', (event) => {
+          const detail = event.detail;
+          renderComboLog('selection-box-change', [
+            `selected: ${detail.selectedItems.map((item) => item.value ?? '(null)').join(', ') || 'none'}`,
+            `changed: ${detail.changedItems.map((item) => `${item.value ?? '(null)'}:${item.selected ? 'selected' : 'deselected'}`).join(', ') || 'none'}`,
+            `mode: ${detail.mode}`,
+          ]);
+        });
+
+        comboSelectionDemo.addEventListener('transform-box-change', (event) => {
+          const detail = event.detail;
+          const item = event.target?.getAttribute?.('value') ?? '(unknown)';
+          applyGroupMove(event, { x: detail.x, y: detail.y }, detail.source);
+          renderComboLog('transform-box-change', [
+            `item: ${item}`,
+            `x/y: ${Math.round(detail.x)} / ${Math.round(detail.y)}`,
+            `size: ${Math.round(detail.width)} x ${Math.round(detail.height)}`,
+            `rotation: ${Math.round(detail.rotation)}deg`,
+            `source: ${detail.source}`,
+          ]);
+        });
+
+        comboSelectionDemo.addEventListener('drag-box-change', (event) => {
+          const detail = event.detail;
+          const item = event.target?.getAttribute?.('value') ?? '(unknown)';
+          applyGroupMove(event, { x: detail.x, y: detail.y }, detail.source);
+          renderComboLog('drag-box-change', [
+            `item: ${item}`,
+            `x/y: ${Math.round(detail.x)} / ${Math.round(detail.y)}`,
+            `source: ${detail.source}`,
+          ]);
+        });
+
+        comboSelectionDemo.addEventListener('transform-box-commit', () => {
+          activeGroupMove = null;
+        });
+
+        comboSelectionDemo.addEventListener('drag-box-commit', () => {
+          activeGroupMove = null;
+        });
+
+        comboMoveButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const direction = comboDirections[button.dataset.comboMove];
+            if (!direction) {
+              return;
+            }
+
+            const step = getComboStep();
+            moveSelectedComboItems(direction.x * step, direction.y * step);
+          });
+        });
+      }
+
+      if (numberLog && numberDemos.length > 0) {
         const renderNumberLog = (label, detail) => {
           const active = detail.activeNumber
             ? `${detail.activeNumber.raw} @ ${detail.activeNumber.startIndex}-${detail.activeNumber.endIndex}`
@@ -360,8 +983,9 @@ numbers: ${numbers || 'none'}`;
           });
         };
 
-        bindLog(numberInputDemo, 'input');
-        bindLog(numberTextareaDemo, 'textarea');
+        numberDemos.forEach((element) => {
+          bindLog(element, element.dataset.numberLabel ?? 'input');
+        });
       }
     </script>
   </body>

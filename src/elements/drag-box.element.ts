@@ -45,6 +45,7 @@ export class CaskoUiDragBoxElement extends LitElement {
     return html`
       <div
         class="box ${this.disabled ? 'disabled' : ''}"
+        data-selection-hit
         style=${this.#getBoxStyle()}
         tabindex=${this.disabled ? -1 : 0}
         role="group"

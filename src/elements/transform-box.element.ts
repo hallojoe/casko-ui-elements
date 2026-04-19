@@ -133,8 +133,14 @@ export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   selected = false;
 
+  @property({ type: Boolean, attribute: 'selection-controlled', reflect: true })
+  selectionControlled = false;
+
   @property({ type: Boolean, attribute: 'show-when-unselected' })
   showWhenUnselected = true;
+
+  @property({ type: Boolean, attribute: 'show-controls-when-unselected' })
+  showControlsWhenUnselected = true;
 
   @property({ type: Boolean, reflect: true })
   disabled = false;
@@ -182,6 +188,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
       ? [...CORNER_HANDLES, ...SIDE_HANDLES]
       : CORNER_HANDLES;
     const visible = this.selected || this.showWhenUnselected;
+    const showControls = this.selected || this.showControlsWhenUnselected;
 
     return html`
       <div
@@ -208,17 +215,18 @@ export class CaskoUiTransformBoxElement extends LitElement {
           @drag-box-commit=${this.#onDragCommit}>
           <div
             class="box ${this.selected ? 'selected' : ''} ${this.disabled ? 'disabled' : ''} ${visible ? '' : 'hidden'}"
+            data-selection-hit
             style=${this.#getBoxStyle(geometry)}>
-            <div class="box-outline" aria-hidden="true"></div>
+            <div class="box-outline ${showControls ? '' : 'hidden'}" aria-hidden="true"></div>
             <div class="content">
               <slot></slot>
             </div>
 
-            ${this.resizable
+            ${this.resizable && showControls
               ? handles.map((handle) => this.#renderResizeHandle(handle))
               : null}
 
-            ${this.rotatable ? this.#renderRotateHandle() : null}
+            ${this.rotatable && showControls ? this.#renderRotateHandle() : null}
           </div>
         </drag-box>
       </div>
@@ -368,7 +376,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
   ) {
     if (this.disabled) return;
 
-    this.#setSelected(true, 'pointer');
+    if (!this.selectionControlled) {
+      this.#setSelected(true, 'pointer');
+    }
+
     this.shadowRoot?.querySelector<HTMLElement>('.surface')?.focus();
 
     const captureElement = event.currentTarget as HTMLElement;
@@ -401,7 +412,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
     if (targetIsControl) return;
 
-    this.#setSelected(true, 'pointer');
+    if (!this.selectionControlled) {
+      this.#setSelected(true, 'pointer');
+    }
+
     this.shadowRoot?.querySelector<HTMLElement>('.surface')?.focus();
   };
 
@@ -623,12 +637,12 @@ export class CaskoUiTransformBoxElement extends LitElement {
   }
 
   #onFocus = () => {
-    if (this.disabled) return;
+    if (this.disabled || this.selectionControlled) return;
     this.#setSelected(true, 'focus');
   };
 
   #onBlur = () => {
-    if (this.interaction) return;
+    if (this.interaction || this.selectionControlled) return;
     this.#setSelected(false, 'blur');
   };
 
@@ -693,6 +707,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
         height: 100%;
         min-height: inherit;
         outline: none;
+        pointer-events: none;
       }
 
       drag-box {
@@ -722,6 +737,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
         background: var(--transform-box-background);
         box-shadow: var(--transform-box-overlay-shadow);
         pointer-events: none;
+      }
+
+      .box-outline.hidden {
+        opacity: 0;
       }
 
       .box.selected .box-outline,

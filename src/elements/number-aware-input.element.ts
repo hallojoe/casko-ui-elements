@@ -206,6 +206,11 @@ function getTokenPartCaret(token: ParsedNumber, part: NumberPart): number {
   return token.startIndex + decimalOffset + 1;
 }
 
+function getCssPixelValue(value: string, fallback: number): number {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 @customElement('number-aware-input')
 export class CaskoUiNumberAwareInputElement extends LitElement {
   @property({ type: String })
@@ -806,6 +811,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     const computed = getComputedStyle(control);
+    const hostComputed = getComputedStyle(this);
     const controlRect = control.getBoundingClientRect();
     const hostRect = this.getBoundingClientRect();
     const paddingLeft = parseFloat(computed.paddingLeft || '0');
@@ -841,18 +847,34 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
-    const spinnerWidth = 32;
-    const spinnerHeight = 60;
+    const spinnerButtonSize = getCssPixelValue(
+      hostComputed.getPropertyValue('--number-aware-input-spinner-button-size'),
+      28,
+    );
+    const spinnerGap = getCssPixelValue(
+      hostComputed.getPropertyValue('--number-aware-input-spinner-gap'),
+      4,
+    );
+    const spinnerOffset = getCssPixelValue(
+      hostComputed.getPropertyValue('--number-aware-input-spinner-offset'),
+      8,
+    );
+    const spinnerInset = getCssPixelValue(
+      hostComputed.getPropertyValue('--number-aware-input-spinner-inset'),
+      4,
+    );
+    const spinnerWidth = spinnerButtonSize;
+    const spinnerHeight = spinnerButtonSize * 2 + spinnerGap;
     const relativeLeft =
-      tokenRect.right - measureRect.left + paddingLeft - control.scrollLeft + 8;
+      tokenRect.right - measureRect.left + paddingLeft - control.scrollLeft + spinnerOffset;
     const relativeTop =
       tokenRect.top - measureRect.top + paddingTop - control.scrollTop + tokenRect.height / 2 - spinnerHeight / 2;
-    const maxLeft = Math.max(0, controlRect.width - spinnerWidth - 4);
-    const maxTop = Math.max(0, controlRect.height - spinnerHeight - 4);
+    const maxLeft = Math.max(0, controlRect.width - spinnerWidth - spinnerInset);
+    const maxTop = Math.max(0, controlRect.height - spinnerHeight - spinnerInset);
 
     this.#setSpinnerPosition({
-      left: Math.min(maxLeft, Math.max(4, relativeLeft)),
-      top: Math.min(maxTop, Math.max(4, relativeTop)),
+      left: Math.min(maxLeft, Math.max(spinnerInset, relativeLeft)),
+      top: Math.min(maxTop, Math.max(spinnerInset, relativeTop)),
       visible: controlRect.width > 0 && hostRect.width > 0,
     });
   }
@@ -860,18 +882,29 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   static styles = css`
     :host {
       display: inline-block;
-      width: 100%;
+      width: var(--number-aware-input-width, 100%);
       min-width: 0;
       --number-aware-input-border: rgba(20, 56, 50, 0.18);
       --number-aware-input-border-focus: #0f5449;
       --number-aware-input-background: #ffffff;
       --number-aware-input-color: #17322d;
+      --number-aware-input-placeholder-color: rgba(23, 50, 45, 0.52);
+      --number-aware-input-focus-ring-size: 3px;
+      --number-aware-input-focus-ring-opacity: 16%;
       --number-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
       --number-aware-input-spinner-color: #ffffff;
       --number-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
+      --number-aware-input-spinner-button-size: 28px;
+      --number-aware-input-spinner-gap: 4px;
+      --number-aware-input-spinner-radius: 10px;
+      --number-aware-input-spinner-offset: 8px;
+      --number-aware-input-spinner-inset: 4px;
       --number-aware-input-radius: 14px;
       --number-aware-input-padding-y: 12px;
       --number-aware-input-padding-x: 14px;
+      --number-aware-input-input-min-height: 48px;
+      --number-aware-input-textarea-min-height: 120px;
+      --number-aware-input-textarea-line-height: 1.5;
       --number-aware-input-font: 400 1rem/1.45 "Segoe UI", sans-serif;
     }
 
@@ -881,7 +914,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     .control {
-      width: 100%;
+      width: var(--number-aware-input-control-width, 100%);
       border-radius: var(--number-aware-input-radius);
       border: 1px solid var(--number-aware-input-border);
       background: var(--number-aware-input-background);
@@ -896,16 +929,26 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
     .control:focus {
       border-color: var(--number-aware-input-border-focus);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--number-aware-input-border-focus) 16%, transparent);
+      box-shadow:
+        0 0 0 var(--number-aware-input-focus-ring-size)
+        color-mix(
+          in srgb,
+          var(--number-aware-input-border-focus) var(--number-aware-input-focus-ring-opacity),
+          transparent
+        );
+    }
+
+    .control::placeholder {
+      color: var(--number-aware-input-placeholder-color);
     }
 
     .input {
-      min-height: 48px;
+      min-height: var(--number-aware-input-input-min-height);
     }
 
     .textarea {
-      min-height: 120px;
-      line-height: 1.5;
+      min-height: var(--number-aware-input-textarea-min-height);
+      line-height: var(--number-aware-input-textarea-line-height);
     }
 
     .control:disabled {
@@ -915,17 +958,17 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
     .spinner {
       position: absolute;
-      width: 28px;
+      width: var(--number-aware-input-spinner-button-size);
       display: grid;
-      gap: 4px;
+      gap: var(--number-aware-input-spinner-gap);
       z-index: 2;
     }
 
     .spinner-button {
-      width: 28px;
-      height: 28px;
+      width: var(--number-aware-input-spinner-button-size);
+      height: var(--number-aware-input-spinner-button-size);
       border: 0;
-      border-radius: 10px;
+      border-radius: var(--number-aware-input-spinner-radius);
       background: var(--number-aware-input-spinner-background);
       color: var(--number-aware-input-spinner-color);
       box-shadow: var(--number-aware-input-spinner-shadow);

@@ -39,6 +39,7 @@ import '@casko/ui-elements/number-aware-input';
 - `drag-select` enables rectangle drag selection from empty space.
 - `deselect-on-outside-click` clears selection when clicking empty wrapper space.
 - Selection is finalized from pointer interactions, so drag gestures do not accidentally toggle selection.
+- Drag-select measures each child's visible selection bounds instead of assuming the host rectangle.
 - The element emits bubbled, composed `selection-box-change` and `selection-box-commit` events.
 
 ### Example
@@ -87,6 +88,7 @@ Drag behavior:
 - While dragging, overlapping items receive a transient preview state.
 - Dragging a selectable item does not trigger rectangle selection.
 - `deselect-on-outside-click` clears the current selection from empty-space clicks.
+- For shadow-DOM children, drag-select first checks `getSelectionBoundsRect()`, then `getSelectionBoundsElement()`, then `[data-selection-bounds]`, and finally falls back to the host bounds.
 
 Keyboard behavior:
 
@@ -262,6 +264,7 @@ Example:
   <transform-box
     value="promo-tile"
     selection-controlled
+    move-requires-selection
     selected
     movable
     resizable
@@ -270,6 +273,14 @@ Example:
   </transform-box>
 </selection-box>
 ```
+
+#### `move-requires-selection`
+
+Use `move-requires-selection` when an outer selection manager should decide whether a box may start moving.
+
+- Default: `false`
+- When `true`, pointerdown on an unselected item will not start a move gesture.
+- This is especially useful with `selection-controlled` inside `selection-box`, where the first click should select and a later drag should move.
 
 #### `showControlsWhenUnselected`
 
@@ -292,6 +303,22 @@ This is especially useful in selection-managed canvases where you want inactive 
 - `transform-box-select`
 - `transform-box-change`
 - `transform-box-commit`
+
+## `drag-box`
+
+`drag-box` provides move-only positioning for slotted content.
+
+### Important integration properties
+
+#### `move-requires-selection`
+
+Use `move-requires-selection` when `drag-box` participates in a larger selection-managed stage.
+
+- Default: `false`
+- When `true`, an unselected `drag-box` ignores move pointerdown gestures.
+- This lets wrappers such as `selection-box` own the first click without the item sliding away.
+
+`drag-box` also exposes its visible box as the selection bounds target, so `selection-box` drag-select can measure the real draggable rectangle instead of the full host.
 
 ## Styling
 
@@ -341,4 +368,4 @@ The demo includes:
 - drag-select enabled rectangle selection
 - standalone `drag-box`
 - standalone `transform-box`
-- a combined stage where `selection-box`, `drag-box`, and `transform-box` work together
+- a combined stage where `selection-box`, `drag-box`, and `transform-box` work together with selection-first movement

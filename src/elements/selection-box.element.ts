@@ -27,6 +27,18 @@ interface SelectionBoxRect {
   height: number;
 }
 
+interface SelectionBoundsRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+interface SelectionBoundsProvider {
+  getSelectionBoundsElement?(): Element | null | undefined;
+  getSelectionBoundsRect?(): SelectionBoundsRect | DOMRect | null | undefined;
+}
+
 interface SelectionBoxInteraction {
   pointerId: number;
   target?: HTMLElement;
@@ -296,7 +308,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     };
 
     return this.#getSelectableElements().filter((element) => {
-      const bounds = element.getBoundingClientRect();
+      const bounds = this.#getSelectionBoundsRect(element);
       return !(
         bounds.right < dragBounds.left ||
         bounds.left > dragBounds.right ||
@@ -348,6 +360,44 @@ export class CaskoUiSelectionBoxElement extends LitElement {
       }
 
       return this.#pathRepresentsSelectableHit(path, node);
+    });
+  }
+
+  #getSelectionBoundsRect(element: HTMLElement): SelectionBoundsRect {
+    const provider = element as HTMLElement & SelectionBoundsProvider;
+
+    if (typeof provider.getSelectionBoundsRect === 'function') {
+      const rect = provider.getSelectionBoundsRect();
+      if (this.#isValidSelectionBoundsRect(rect)) {
+        return rect;
+      }
+    }
+
+    if (typeof provider.getSelectionBoundsElement === 'function') {
+      const boundsElement = provider.getSelectionBoundsElement();
+      if (boundsElement instanceof Element) {
+        return boundsElement.getBoundingClientRect();
+      }
+    }
+
+    const shadowBoundsElement = element.shadowRoot?.querySelector<HTMLElement>('[data-selection-bounds]');
+    if (shadowBoundsElement) {
+      return shadowBoundsElement.getBoundingClientRect();
+    }
+
+    return element.getBoundingClientRect();
+  }
+
+  #isValidSelectionBoundsRect(
+    rect: SelectionBoundsRect | DOMRect | null | undefined,
+  ): rect is SelectionBoundsRect | DOMRect {
+    if (!rect) {
+      return false;
+    }
+
+    return ['left', 'top', 'right', 'bottom'].every((key) => {
+      const value = rect[key as keyof SelectionBoundsRect];
+      return typeof value === 'number' && Number.isFinite(value);
     });
   }
 

@@ -29,6 +29,9 @@ export class CaskoUiDragBoxElement extends LitElement {
   @property({ type: Boolean, attribute: 'clamp-to-bounds', reflect: true })
   clampToBounds = true;
 
+  @property({ type: Boolean, attribute: 'move-requires-selection', reflect: true })
+  moveRequiresSelection = false;
+
   @query('.box')
   private boxElement?: HTMLDivElement;
 
@@ -46,6 +49,7 @@ export class CaskoUiDragBoxElement extends LitElement {
       <div
         class="box ${this.disabled ? 'disabled' : ''}"
         data-selection-hit
+        data-selection-bounds
         style=${this.#getBoxStyle()}
         tabindex=${this.disabled ? -1 : 0}
         role="group"
@@ -121,6 +125,7 @@ export class CaskoUiDragBoxElement extends LitElement {
 
   #onPointerDown = (event: PointerEvent) => {
     if (this.disabled) return;
+    if (this.moveRequiresSelection && !this.hasAttribute('selected')) return;
 
     const path = event.composedPath();
     const targetIsIgnored = path.some(
@@ -142,6 +147,10 @@ export class CaskoUiDragBoxElement extends LitElement {
 
     event.preventDefault();
   };
+
+  getSelectionBoundsElement(): Element | null {
+    return this.boxElement ?? null;
+  }
 
   #onPointerMove = (event: PointerEvent) => {
     if (!this.interaction || event.pointerId !== this.interaction.pointerId) return;

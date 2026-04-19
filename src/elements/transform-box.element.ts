@@ -157,6 +157,9 @@ export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   resizable = true;
 
+  @property({ type: Boolean, attribute: 'move-requires-selection', reflect: true })
+  moveRequiresSelection = false;
+
   @property({ type: Number, attribute: 'keyboard-step' })
   keyboardStep = 1;
 
@@ -210,12 +213,14 @@ export class CaskoUiTransformBoxElement extends LitElement {
           .y=${geometry.y}
           ?disabled=${this.disabled || !this.movable}
           .clampToBounds=${false}
+          ?moveRequiresSelection=${this.moveRequiresSelection}
           @pointerdown=${this.#onMovePointerDown}
           @drag-box-change=${this.#onDragChange}
           @drag-box-commit=${this.#onDragCommit}>
           <div
             class="box ${this.selected ? 'selected' : ''} ${this.disabled ? 'disabled' : ''} ${visible ? '' : 'hidden'}"
             data-selection-hit
+            data-selection-bounds
             style=${this.#getBoxStyle(geometry)}>
             <div class="box-outline ${showControls ? '' : 'hidden'}" aria-hidden="true"></div>
             <div class="content">
@@ -418,6 +423,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
 
     this.shadowRoot?.querySelector<HTMLElement>('.surface')?.focus();
   };
+
+  getSelectionBoundsElement(): Element | null {
+    return this.shadowRoot?.querySelector('.box[data-selection-bounds]') ?? null;
+  }
 
   #onDragChange = (event: CustomEvent<DragBoxChangeDetail>) => {
     if (this.disabled || !this.movable) return;

@@ -678,7 +678,8 @@
           <p class="hint">
             This stage lets <code>selection-box</code> manage selection while <code>drag-box</code>
             and <code>transform-box</code> keep handling movement and transforms. Plain click picks
-            one item, and <kbd>Shift</kbd>+click adds more selections.
+            one item, <kbd>Shift</kbd>+click adds more selections, and movement only starts after an
+            item is already selected.
           </p>
           <div class="combo-controls">
             <div class="combo-controls-bar">
@@ -707,7 +708,9 @@
               id="combo-selection-demo"
               class="combo-selection-box"
               selection-mode="multiple"
-              multi-select-key="shift">
+              multi-select-key="shift"
+              drag-select
+              deselect-on-outside-click>
               <transform-box
                 value="promo-tile"
                 x="54"
@@ -717,6 +720,7 @@
                 rotation="-6"
                 selected
                 selection-controlled
+                move-requires-selection
                 show-side-handles
                 movable
                 resizable
@@ -732,6 +736,7 @@
                 height="118"
                 rotation="4"
                 selection-controlled
+                move-requires-selection
                 show-side-handles
                 movable
                 resizable
@@ -741,17 +746,17 @@
                 </div>
               </transform-box>
 
-              <drag-box id="combo-note-a" value="note-a" x="256" y="72">
+              <drag-box id="combo-note-a" value="note-a" x="256" y="72" move-requires-selection>
                 <article class="draggable-note">
                   <strong>Sticky Note A</strong>
                   <span>Selection comes from the wrapper, movement comes from drag-box.</span>
                 </article>
               </drag-box>
 
-              <drag-box id="combo-note-b" value="note-b" x="160" y="286">
+              <drag-box id="combo-note-b" value="note-b" x="160" y="286" move-requires-selection>
                 <article class="draggable-note">
                   <strong>Sticky Note B</strong>
-                  <span>Shift-click to keep both notes or mix notes with transform cards.</span>
+                  <span>Shift-click or drag-select to mix notes with transform cards, then drag the selected set.</span>
                 </article>
               </drag-box>
             </selection-box>

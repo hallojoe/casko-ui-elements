@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 
-export type NumberAwareInputCause =
+export type TokenAwareInputCause =
   | 'input'
   | 'selection'
   | 'step-up'
@@ -11,10 +11,10 @@ export type NumberAwareInputCause =
   | 'blur'
   | 'commit';
 
-export type NumberAwareInputReadonlyMode = 'none' | 'all' | 'text' | 'number';
-export type NumberAwareInputPairLockMode = 'step' | 'all';
-export type NumberAwareInputTokenMode = 'number' | 'values' | 'pattern-values';
-export type NumberAwareInputSuggestionMode = 'none' | 'dropdown';
+export type TokenAwareInputReadonlyMode = 'none' | 'all' | 'text' | 'number';
+export type TokenAwareInputPairLockMode = 'step' | 'all';
+export type TokenAwareInputTokenMode = 'number' | 'values' | 'pattern-values';
+export type TokenAwareInputSuggestionMode = 'none' | 'dropdown';
 
 interface ParsedTokenBase {
   raw: string;
@@ -22,7 +22,7 @@ interface ParsedTokenBase {
   startIndex: number;
   length: number;
   endIndex: number;
-  mode: NumberAwareInputTokenMode;
+  mode: TokenAwareInputTokenMode;
   activePart: 'integer' | 'fraction' | null;
 }
 
@@ -52,14 +52,14 @@ interface ResolvedPatternToken {
 
 type NumberPart = 'integer' | 'fraction';
 
-export interface NumberAwareInputStateDetail {
+export interface TokenAwareInputStateDetail {
   value: string;
   previousValue: string;
-  numbers: ParsedNumber[];
-  activeNumber: ParsedNumber | null;
+  numbers: ParsedToken[];
+  activeNumber: ParsedToken | null;
   selectionStart: number | null;
   selectionEnd: number | null;
-  cause: NumberAwareInputCause;
+  cause: TokenAwareInputCause;
 }
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement;
@@ -81,7 +81,7 @@ interface TokenReplacement {
 
 interface InputSnapshot {
   value: string;
-  numbers: ParsedNumber[];
+  numbers: ParsedToken[];
   activeTokenIndex: number;
 }
 
@@ -231,7 +231,7 @@ function resolvePatternToken(value: string, pattern: RegExp): ResolvedPatternTok
 function selectionOverlapsToken(
   selectionStart: number,
   selectionEnd: number,
-  token: ParsedNumber,
+  token: ParsedToken,
 ): boolean {
   const overlapStart = Math.max(selectionStart, token.startIndex);
   const overlapEnd = Math.min(selectionEnd, token.endIndex);
@@ -239,10 +239,10 @@ function selectionOverlapsToken(
 }
 
 function getActiveNumber(
-  numbers: ParsedNumber[],
+  numbers: ParsedToken[],
   selectionStart: number | null,
   selectionEnd: number | null,
-): ParsedNumber | null {
+): ParsedToken | null {
   if (selectionStart === null || selectionEnd === null) {
     return null;
   }
@@ -250,11 +250,11 @@ function getActiveNumber(
   if (selectionStart === selectionEnd) {
     const caret = selectionStart;
     const token = numbers.find((entry) => caret >= entry.startIndex && caret <= entry.endIndex) ?? null;
-    return token ? getTokenWithActivePart(token, caret) : null;
+    return token ? getActiveTokenWithPart(token, caret) : null;
   }
 
   const overlapping = numbers.filter((token) => selectionOverlapsToken(selectionStart, selectionEnd, token));
-  return overlapping.length === 1 ? getTokenWithActivePart(overlapping[0], selectionStart) : null;
+  return overlapping.length === 1 ? getActiveTokenWithPart(overlapping[0], selectionStart) : null;
 }
 
 function getTokenWithActivePart(token: ParsedNumber, caret: number): ParsedNumber {
@@ -275,6 +275,10 @@ function getTokenWithActivePart(token: ParsedNumber, caret: number): ParsedNumbe
     step: activePart === 'fraction' ? token.decimalStep : token.integerStep,
     activePart,
   };
+}
+
+function getActiveTokenWithPart(token: ParsedToken, caret: number): ParsedToken {
+  return token.mode === 'number' ? getTokenWithActivePart(token, caret) : token;
 }
 
 function roundToPrecision(value: number, precision: number): number {
@@ -306,12 +310,16 @@ function getTokenPartCaret(token: ParsedNumber, part: NumberPart): number {
   return token.startIndex + decimalOffset + 1;
 }
 
+function getTokenStartCaret(token: ParsedToken): number {
+  return token.mode === 'number' ? getTokenPartCaret(token, 'integer') : token.startIndex;
+}
+
 function getCssPixelValue(value: string, fallback: number): number {
   const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function sanitizeReadonlyMode(value: string): NumberAwareInputReadonlyMode {
+function sanitizeReadonlyMode(value: string): TokenAwareInputReadonlyMode {
   switch (value) {
     case 'all':
     case 'text':
@@ -322,11 +330,11 @@ function sanitizeReadonlyMode(value: string): NumberAwareInputReadonlyMode {
   }
 }
 
-function sanitizePairLockMode(value: string): NumberAwareInputPairLockMode {
+function sanitizePairLockMode(value: string): TokenAwareInputPairLockMode {
   return value === 'all' ? 'all' : 'step';
 }
 
-function sanitizeSuggestionMode(value: string): NumberAwareInputSuggestionMode {
+function sanitizeSuggestionMode(value: string): TokenAwareInputSuggestionMode {
   return value === 'dropdown' ? 'dropdown' : 'none';
 }
 
@@ -334,8 +342,8 @@ function clampNumber(value: number, minValue?: number, maxValue?: number): numbe
   return Math.min(maxValue ?? value, Math.max(minValue ?? value, value));
 }
 
-@customElement('number-aware-input')
-export class CaskoUiNumberAwareInputElement extends LitElement {
+@customElement('token-aware-input')
+export class CaskoUiTokenAwareInputElement extends LitElement {
   @property({ type: String })
   value = '';
 
@@ -367,13 +375,34 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   readonly = false;
 
   @property({ type: String, attribute: 'readonly-mode', reflect: true })
-  readonlyMode: NumberAwareInputReadonlyMode = 'none';
+  readonlyMode: TokenAwareInputReadonlyMode = 'none';
 
   @property({ type: Boolean, attribute: 'pair-lock', reflect: true })
   pairLock = false;
 
   @property({ type: String, attribute: 'pair-lock-mode', reflect: true })
-  pairLockMode: NumberAwareInputPairLockMode = 'step';
+  pairLockMode: TokenAwareInputPairLockMode = 'step';
+
+  @property({
+    attribute: 'allowed-values',
+    converter: {
+      fromAttribute: (value) => allowedValuesConverter(value),
+      toAttribute: (value) => JSON.stringify(allowedValuesConverter(value)),
+    },
+  })
+  allowedValues: string[] = [];
+
+  @property({
+    attribute: 'token-pattern',
+    converter: {
+      fromAttribute: (value) => value,
+      toAttribute: (value) => (value instanceof RegExp ? value.source : value ?? null),
+    },
+  })
+  tokenPattern: string | RegExp | null = null;
+
+  @property({ type: String, attribute: 'suggestion-mode', reflect: true })
+  suggestionMode: TokenAwareInputSuggestionMode = 'none';
 
   @property({ type: Boolean, attribute: 'show-spinner', reflect: true })
   showSpinner = true;
@@ -384,8 +413,8 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   @query('#measure')
   private measureElement?: HTMLDivElement;
 
-  private parsedNumbers: ParsedNumber[] = [];
-  private activeNumber: ParsedNumber | null = null;
+  private parsedNumbers: ParsedToken[] = [];
+  private activeNumber: ParsedToken | null = null;
   private selectionStart: number | null = null;
   private selectionEnd: number | null = null;
   private spinnerPosition: SpinnerPosition = { top: 0, left: 0, visible: false };
@@ -421,6 +450,8 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       changedProperties.has('decimalSeparator') ||
       changedProperties.has('step') ||
       changedProperties.has('stepDecimal') ||
+      changedProperties.has('allowedValues') ||
+      changedProperties.has('tokenPattern') ||
       changedProperties.has('min') ||
       changedProperties.has('max')
     ) {
@@ -493,6 +524,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       <div class="field">
         ${control}
         ${this.#renderSpinner()}
+        ${this.#renderSuggestionDropdown()}
         <div id="measure" class="measure" aria-hidden="true"></div>
       </div>
     `;
@@ -500,6 +532,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
   #renderSpinner() {
     if (
+      this.#usesSuggestionDropdown() ||
       !this.showSpinner ||
       !this.spinnerPosition.visible ||
       !this.activeNumber ||
@@ -540,6 +573,31 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     `;
   }
 
+  #renderSuggestionDropdown() {
+    if (!this.#shouldShowSuggestionDropdown()) {
+      return nothing;
+    }
+
+    const allowedValues = this.#getAllowedValues();
+    const activeValue = this.activeNumber?.mode === 'number' ? null : this.activeNumber?.value;
+
+    return html`
+      <div class="suggestions" role="listbox" aria-label="Token suggestions">
+        ${allowedValues.map((value) => html`
+          <button
+            type="button"
+            class="suggestion-item ${value === activeValue ? 'active' : ''}"
+            role="option"
+            aria-selected=${String(value === activeValue)}
+            @mousedown=${this.#preventControlBlur}
+            @click=${() => this.#selectSuggestionValue(value)}>
+            ${value}
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
   #syncControlValue() {
     if (!this.controlElement) {
       return;
@@ -558,16 +616,55 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     return Number.isFinite(value) && value > 0 ? value : fallback;
   }
 
-  #getReadonlyMode(): NumberAwareInputReadonlyMode {
+  #getReadonlyMode(): TokenAwareInputReadonlyMode {
     return this.readonly ? 'all' : sanitizeReadonlyMode(this.readonlyMode);
   }
 
-  #getPairLockMode(): NumberAwareInputPairLockMode {
+  #getPairLockMode(): TokenAwareInputPairLockMode {
     return sanitizePairLockMode(this.pairLockMode);
   }
 
+  #getSuggestionMode(): TokenAwareInputSuggestionMode {
+    return sanitizeSuggestionMode(this.suggestionMode);
+  }
+
+  #getAllowedValues(): string[] {
+    return allowedValuesConverter(this.allowedValues);
+  }
+
+  #getTokenPattern(): RegExp | null {
+    return normalizePatternInput(this.tokenPattern);
+  }
+
+  #getConfiguredTokenMode(): TokenAwareInputTokenMode {
+    const allowedValues = this.#getAllowedValues();
+    const tokenPattern = this.#getTokenPattern();
+
+    if (allowedValues.length === 0) {
+      return 'number';
+    }
+
+    return tokenPattern ? 'pattern-values' : 'values';
+  }
+
   #usesNumericMode(): boolean {
-    return true;
+    return this.#getConfiguredTokenMode() === 'number';
+  }
+
+  #usesSuggestionDropdown(): boolean {
+    return !this.#usesNumericMode() && this.#getSuggestionMode() === 'dropdown';
+  }
+
+  #shouldShowSuggestionDropdown(): boolean {
+    return (
+      this.#usesSuggestionDropdown() &&
+      this.hasFocus &&
+      !this.disabled &&
+      this.#getReadonlyMode() !== 'all' &&
+      this.#getAllowedValues().length > 0 &&
+      !!this.activeNumber &&
+      this.activeNumber.mode !== 'number'
+    );
   }
 
   #isStepperBlocked(): boolean {
@@ -595,6 +692,80 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     );
   }
 
+  #parseValueToken(value: string): ParsedValueToken[] {
+    const allowedValues = this.#getAllowedValues();
+
+    if (allowedValues.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        raw: value,
+        value,
+        startIndex: 0,
+        length: value.length,
+        endIndex: value.length,
+        mode: 'values',
+        activePart: null,
+        allowedIndex: allowedValues.indexOf(value),
+      },
+    ];
+  }
+
+  #parsePatternValueToken(value: string): ParsedValueToken[] {
+    const allowedValues = this.#getAllowedValues();
+    const tokenPattern = this.#getTokenPattern();
+
+    if (allowedValues.length === 0 || !tokenPattern) {
+      return [];
+    }
+
+    const resolvedToken = resolvePatternToken(value, tokenPattern);
+    if (!resolvedToken) {
+      return [];
+    }
+
+    return [
+      {
+        raw: resolvedToken.raw,
+        value: resolvedToken.raw,
+        startIndex: resolvedToken.startIndex,
+        length: resolvedToken.raw.length,
+        endIndex: resolvedToken.endIndex,
+        mode: 'pattern-values',
+        activePart: null,
+        allowedIndex: allowedValues.indexOf(resolvedToken.raw),
+      },
+    ];
+  }
+
+  #parseTokens(value: string): ParsedToken[] {
+    switch (this.#getConfiguredTokenMode()) {
+      case 'values':
+        return this.#parseValueToken(value);
+      case 'pattern-values':
+        return this.#parsePatternValueToken(value);
+      case 'number':
+      default:
+        return this.#parseAllNumbers(value);
+    }
+  }
+
+  #isAcceptedConstrainedValue(nextValue: string): boolean {
+    const allowedValues = this.#getAllowedValues();
+    if (allowedValues.length === 0) {
+      return true;
+    }
+
+    if (this.#getConfiguredTokenMode() === 'values') {
+      return allowedValues.includes(nextValue);
+    }
+
+    const parsedToken = this.#parsePatternValueToken(nextValue)[0];
+    return Boolean(parsedToken && parsedToken.allowedIndex !== -1);
+  }
+
   #hasSameNumericTokens(previousValue: string, nextValue: string): boolean {
     const previousNumbers = this.#parseAllNumbers(previousValue);
     const nextNumbers = this.#parseAllNumbers(nextValue);
@@ -611,13 +782,19 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   }
 
   #isAcceptedInputValue(nextValue: string, previousValue: string): boolean {
+    if (!this.#usesNumericMode()) {
+      if (!this.#isAcceptedConstrainedValue(nextValue)) {
+        return false;
+      }
+    }
+
     switch (this.#getReadonlyMode()) {
       case 'all':
         return nextValue === previousValue;
       case 'text':
         return this.#containsOnlyReadonlyTextCharacters(nextValue);
       case 'number':
-        return this.#hasSameNumericTokens(previousValue, nextValue);
+        return this.#usesNumericMode() ? this.#hasSameNumericTokens(previousValue, nextValue) : true;
       default:
         return true;
     }
@@ -666,7 +843,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
   }
 
-  #findTokenIndex(token: ParsedNumber | null, numbers = this.parsedNumbers): number {
+  #findTokenIndex(token: ParsedToken | null, numbers = this.parsedNumbers): number {
     if (!token) {
       return -1;
     }
@@ -717,10 +894,49 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     };
   }
 
+  #replaceActiveTokenValue(token: ParsedToken, replacement: string) {
+    const control = this.controlElement;
+    if (!control) {
+      return;
+    }
+
+    const previousValue = this.value;
+    const nextValue = this.#replaceTokenValues(this.value, [
+      {
+        tokenIndex: this.#findTokenIndex(token),
+        startIndex: token.startIndex,
+        endIndex: token.endIndex,
+        replacement,
+      },
+    ]);
+
+    if (nextValue === previousValue) {
+      return;
+    }
+
+    this.isInternalValueUpdate = true;
+    this.value = nextValue;
+    this.previousCommittedValue = previousValue;
+    control.value = nextValue;
+    control.focus();
+
+    const reparsedNextToken = this.#parseTokens(nextValue)[0];
+    if (reparsedNextToken) {
+      this.selectionStart = reparsedNextToken.startIndex;
+      this.selectionEnd = reparsedNextToken.endIndex;
+      control.setSelectionRange(reparsedNextToken.startIndex, reparsedNextToken.endIndex);
+    }
+
+    this.#recomputeState('input', previousValue);
+    this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    this.#emitCommit('commit');
+    void this.updateComplete.then(() => this.#updateSpinnerPosition());
+  }
+
   #getSelectionWithinToken(
     selectionStart: number | null,
     selectionEnd: number | null,
-    token: ParsedNumber,
+    token: ParsedToken,
   ) {
     const startOffset =
       selectionStart === null ? 0 : Math.max(0, Math.min(token.length, selectionStart - token.startIndex));
@@ -740,6 +956,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     selectionEnd: number | null,
   ) {
     if (
+      !this.#usesNumericMode() ||
       !this.pairLock ||
       this.#getPairLockMode() !== 'all' ||
       snapshot.activeTokenIndex === -1
@@ -769,7 +986,9 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     const nextPairToken = nextNumbers[pairTokenIndex];
 
     if (
+      previousActiveToken?.mode !== 'number' ||
       !nextActiveToken ||
+      previousPairToken?.mode !== 'number' ||
       !nextPairToken
     ) {
       return null;
@@ -834,7 +1053,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     );
   }
 
-  #createDetail(previousValue: string, cause: NumberAwareInputCause): NumberAwareInputStateDetail {
+  #createDetail(previousValue: string, cause: TokenAwareInputCause): TokenAwareInputStateDetail {
     return {
       value: this.value,
       previousValue,
@@ -854,10 +1073,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     return Number.isFinite(this.max) ? this.max : undefined;
   }
 
-  #recomputeState(cause: NumberAwareInputCause, previousValue = this.value) {
-    this.parsedNumbers = this.#parseAllNumbers(this.value);
+  #recomputeState(cause: TokenAwareInputCause, previousValue = this.value) {
+    this.parsedNumbers = this.#parseTokens(this.value);
     this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
-    this.#emitEvent('number-aware-input-state-change', this.#createDetail(previousValue, cause));
+    this.#emitEvent('token-aware-input-state-change', this.#createDetail(previousValue, cause));
     this.requestUpdate();
   }
 
@@ -866,7 +1085,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     this.selectionEnd = this.controlElement?.selectionEnd ?? null;
   }
 
-  #queueSelectionSync(cause: NumberAwareInputCause) {
+  #queueSelectionSync(cause: TokenAwareInputCause) {
     queueMicrotask(() => {
       this.#updateSelectionFromControl();
       this.#recomputeState(cause);
@@ -949,7 +1168,12 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #selectSuggestionValue(value: string) {
-    void value;
+    const token = this.activeNumber;
+    if (!token || token.mode === 'number' || this.disabled) {
+      return;
+    }
+
+    this.#replaceActiveTokenValue(token, value);
   }
 
   #onControlScroll = () => {
@@ -1036,7 +1260,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
-    this.#setSelectionToToken(firstToken, 'integer');
+    this.#setSelectionToToken(firstToken, firstToken.mode === 'number' ? 'integer' : undefined);
   }
 
   #moveActiveNumber(direction: 1 | -1): boolean {
@@ -1048,7 +1272,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     this.#updateSelectionFromControl();
     const activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
 
-    if (activeNumber?.decimalSeparator) {
+    if (activeNumber?.mode === 'number' && activeNumber.decimalSeparator) {
       if (direction === -1 && activeNumber.activePart === 'fraction') {
         this.#setSelectionToToken(activeNumber, 'integer');
         return true;
@@ -1074,20 +1298,25 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     const nextToken = this.parsedNumbers[nextIndex];
-    const nextPart: NumberPart = nextToken.decimalSeparator && direction === -1 ? 'fraction' : 'integer';
+    const nextPart: NumberPart | undefined =
+      nextToken.mode === 'number' && nextToken.decimalSeparator && direction === -1
+        ? 'fraction'
+        : nextToken.mode === 'number'
+          ? 'integer'
+          : undefined;
 
     control.focus();
     this.#setSelectionToToken(nextToken, nextPart);
     return true;
   }
 
-  #setSelectionToToken(token: ParsedNumber, part?: NumberPart) {
+  #setSelectionToToken(token: ParsedToken, part?: NumberPart) {
     const control = this.controlElement;
     if (!control) {
       return;
     }
 
-    const caret = getTokenPartCaret(token, part ?? 'integer');
+    const caret = token.mode === 'number' && part ? getTokenPartCaret(token, part) : getTokenStartCaret(token);
     control.setSelectionRange(caret, caret);
     this.selectionStart = caret;
     this.selectionEnd = caret;
@@ -1186,6 +1415,11 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
+    if (token.mode !== 'number') {
+      this.#stepActiveValueToken(token, direction, cause);
+      return;
+    }
+
     const previousValue = this.value;
     const minValue = this.#getMinValue();
     const maxValue = this.#getMaxValue();
@@ -1210,18 +1444,20 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
       if (pairedTokenIndex !== -1) {
         const pairedToken = this.parsedNumbers[pairedTokenIndex];
-        const nextPairedValue = clampNumber(
-          this.#getPairLockedValue(token, nextNumericValue, pairedToken),
-          minValue,
-          maxValue,
-        );
+        if (pairedToken?.mode === 'number') {
+          const nextPairedValue = clampNumber(
+            this.#getPairLockedValue(token, nextNumericValue, pairedToken),
+            minValue,
+            maxValue,
+          );
 
-        replacements.push({
-          tokenIndex: pairedTokenIndex,
-          startIndex: pairedToken.startIndex,
-          endIndex: pairedToken.endIndex,
-          replacement: formatNumberToken(pairedToken, nextPairedValue),
-        });
+          replacements.push({
+            tokenIndex: pairedTokenIndex,
+            startIndex: pairedToken.startIndex,
+            endIndex: pairedToken.endIndex,
+            replacement: formatNumberToken(pairedToken, nextPairedValue),
+          });
+        }
       }
     }
 
@@ -1262,10 +1498,65 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     void this.updateComplete.then(() => this.#updateSpinnerPosition());
   }
 
-  #emitCommit(cause: NumberAwareInputCause) {
+  #stepActiveValueToken(
+    token: ParsedValueToken,
+    direction: 1 | -1,
+    cause: 'step-up' | 'step-down' | 'spinner',
+  ) {
+    const control = this.controlElement;
+    if (!control) {
+      return;
+    }
+
+    const allowedValues = this.#getAllowedValues();
+    if (allowedValues.length === 0 || token.allowedIndex === -1) {
+      return;
+    }
+
+    const previousValue = this.value;
+    const nextAllowedIndex = (token.allowedIndex + direction + allowedValues.length) % allowedValues.length;
+    const replacement = allowedValues[nextAllowedIndex];
+
+    if (replacement === token.raw) {
+      return;
+    }
+
+    const nextValue = this.#replaceTokenValues(this.value, [
+      {
+        tokenIndex: this.#findTokenIndex(token),
+        startIndex: token.startIndex,
+        endIndex: token.endIndex,
+        replacement,
+      },
+    ]);
+
+    this.isInternalValueUpdate = true;
+    this.value = nextValue;
+    this.previousCommittedValue = previousValue;
+    control.value = nextValue;
+    control.focus();
+
+    const reparsedNextToken = this.#parseTokens(nextValue)[0];
+    if (reparsedNextToken) {
+      const offsets = this.#getSelectionWithinToken(this.selectionStart, this.selectionEnd, token);
+      const nextSelectionStart =
+        reparsedNextToken.startIndex + Math.min(offsets.startOffset, reparsedNextToken.length);
+      const nextSelectionEnd =
+        reparsedNextToken.startIndex + Math.min(offsets.endOffset, reparsedNextToken.length);
+      this.selectionStart = nextSelectionStart;
+      this.selectionEnd = nextSelectionEnd;
+      control.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    }
+
+    this.#recomputeState(cause, previousValue);
+    this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    void this.updateComplete.then(() => this.#updateSpinnerPosition());
+  }
+
+  #emitCommit(cause: TokenAwareInputCause) {
     const detail = this.#createDetail(this.previousCommittedValue, cause);
     this.previousCommittedValue = this.value;
-    this.#emitEvent('number-aware-input-commit', detail);
+    this.#emitEvent('token-aware-input-commit', detail);
   }
 
   #setSpinnerPosition(nextPosition: SpinnerPosition) {
@@ -1337,19 +1628,19 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     const spinnerButtonSize = getCssPixelValue(
-      hostComputed.getPropertyValue('--number-aware-input-spinner-button-size'),
+      hostComputed.getPropertyValue('--token-aware-input-spinner-button-size'),
       28,
     );
     const spinnerGap = getCssPixelValue(
-      hostComputed.getPropertyValue('--number-aware-input-spinner-gap'),
+      hostComputed.getPropertyValue('--token-aware-input-spinner-gap'),
       4,
     );
     const spinnerOffset = getCssPixelValue(
-      hostComputed.getPropertyValue('--number-aware-input-spinner-offset'),
+      hostComputed.getPropertyValue('--token-aware-input-spinner-offset'),
       8,
     );
     const spinnerInset = getCssPixelValue(
-      hostComputed.getPropertyValue('--number-aware-input-spinner-inset'),
+      hostComputed.getPropertyValue('--token-aware-input-spinner-inset'),
       4,
     );
     const spinnerWidth = spinnerButtonSize;
@@ -1371,40 +1662,40 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   static styles = css`
     :host {
       display: inline-block;
-      width: var(--number-aware-input-width, 100%);
+      width: var(--token-aware-input-width, 100%);
       min-width: 0;
-      --number-aware-input-border: rgba(20, 56, 50, 0.18);
-      --number-aware-input-border-focus: #0f5449;
-      --number-aware-input-background: #ffffff;
-      --number-aware-input-color: #17322d;
-      --number-aware-input-placeholder-color: rgba(23, 50, 45, 0.52);
-      --number-aware-input-focus-ring-size: 3px;
-      --number-aware-input-focus-ring-opacity: 16%;
-      --number-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
-      --number-aware-input-spinner-color: #ffffff;
-      --number-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
-      --number-aware-input-spinner-button-size: 16px;
-      --number-aware-input-spinner-gap: 0px;
-      --number-aware-input-spinner-radius: 3px;
-      --number-aware-input-spinner-offset: 8px;
-      --number-aware-input-spinner-inset: 4px;
-      --number-aware-input-suggestions-max-height: 180px;
-      --number-aware-input-suggestions-background: #ffffff;
-      --number-aware-input-suggestions-border: rgba(20, 56, 50, 0.12);
-      --number-aware-input-suggestions-shadow: 0 10px 24px rgba(20, 56, 50, 0.1);
-      --number-aware-input-suggestions-gap: 0;
-      --number-aware-input-suggestions-padding: 0;
-      --number-aware-input-suggestion-item-radius: 0px;
-      --number-aware-input-suggestion-item-padding: 8px 10px;
-      --number-aware-input-suggestion-hover: rgba(15, 84, 73, 0.06);
-      --number-aware-input-suggestion-active: rgba(15, 84, 73, 0.1);
-      --number-aware-input-radius: 3px;
+      --token-aware-input-border: rgba(20, 56, 50, 0.18);
+      --token-aware-input-border-focus: #0f5449;
+      --token-aware-input-background: #ffffff;
+      --token-aware-input-color: #17322d;
+      --token-aware-input-placeholder-color: rgba(23, 50, 45, 0.52);
+      --token-aware-input-focus-ring-size: 3px;
+      --token-aware-input-focus-ring-opacity: 16%;
+      --token-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
+      --token-aware-input-spinner-color: #ffffff;
+      --token-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
+      --token-aware-input-spinner-button-size: 17px;
+      --token-aware-input-spinner-gap: 0;
+      --token-aware-input-spinner-radius: 0;
+      --token-aware-input-spinner-offset: 8px;
+      --token-aware-input-spinner-inset: 4px;
+      --token-aware-input-suggestions-max-height: 180px;
+      --token-aware-input-suggestions-background: #ffffff;
+      --token-aware-input-suggestions-border: rgba(20, 56, 50, 0.12);
+      --token-aware-input-suggestions-shadow: 0 10px 24px rgba(20, 56, 50, 0.1);
+      --token-aware-input-suggestions-gap: 0;
+      --token-aware-input-suggestions-padding: 0;
+      --token-aware-input-suggestion-item-radius: 0;
+      --token-aware-input-suggestion-item-padding: 8px 10px;
+      --token-aware-input-suggestion-hover: rgba(15, 84, 73, 0.06);
+      --token-aware-input-suggestion-active: rgba(15, 84, 73, 0.1);
+      --token-aware-input-radius: 8px;
       --number-aware-input-padding-y: .4rem;
       --number-aware-input-padding-x: .55rem;
-      --number-aware-input-input-min-height: auto;
-      --number-aware-input-textarea-min-height: 120px;
-      --number-aware-input-textarea-line-height: 1.5;
-      --number-aware-input-font: 400 1rem/1.45 "Segoe UI", sans-serif;
+      --token-aware-input-input-min-height: 35px;
+      --token-aware-input-textarea-min-height: 120px;
+      --token-aware-input-textarea-line-height: 1.5;
+      --token-aware-input-font: 400 1rem/1.45 "Segoe UI", sans-serif;
     }
 
     .field {
@@ -1413,13 +1704,13 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     .control {
-      width: var(--number-aware-input-control-width, 100%);
-      border-radius: var(--number-aware-input-radius);
-      border: 1px solid var(--number-aware-input-border);
-      background: var(--number-aware-input-background);
-      color: var(--number-aware-input-color);
-      padding: var(--number-aware-input-padding-y) var(--number-aware-input-padding-x);
-      font: var(--number-aware-input-font);
+      width: var(--token-aware-input-control-width, 100%);
+      border-radius: var(--token-aware-input-radius);
+      border: 1px solid var(--token-aware-input-border);
+      background: var(--token-aware-input-background);
+      color: var(--token-aware-input-color);
+      padding: var(--token-aware-input-padding-y) var(--token-aware-input-padding-x);
+      font: var(--token-aware-input-font);
       resize: vertical;
       outline: none;
       box-sizing: border-box;
@@ -1427,27 +1718,27 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     }
 
     .control:focus {
-      border-color: var(--number-aware-input-border-focus);
+      border-color: var(--token-aware-input-border-focus);
       box-shadow:
-        0 0 0 var(--number-aware-input-focus-ring-size)
+        0 0 0 var(--token-aware-input-focus-ring-size)
         color-mix(
           in srgb,
-          var(--number-aware-input-border-focus) var(--number-aware-input-focus-ring-opacity),
+          var(--token-aware-input-border-focus) var(--token-aware-input-focus-ring-opacity),
           transparent
         );
     }
 
     .control::placeholder {
-      color: var(--number-aware-input-placeholder-color);
+      color: var(--token-aware-input-placeholder-color);
     }
 
     .input {
-      min-height: var(--number-aware-input-input-min-height);
+      min-height: var(--token-aware-input-input-min-height);
     }
 
     .textarea {
-      min-height: var(--number-aware-input-textarea-min-height);
-      line-height: var(--number-aware-input-textarea-line-height);
+      min-height: var(--token-aware-input-textarea-min-height);
+      line-height: var(--token-aware-input-textarea-line-height);
     }
 
     .control:disabled {
@@ -1457,20 +1748,20 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
     .spinner {
       position: absolute;
-      width: var(--number-aware-input-spinner-button-size);
+      width: var(--token-aware-input-spinner-button-size);
       display: grid;
-      gap: var(--number-aware-input-spinner-gap);
+      gap: var(--token-aware-input-spinner-gap);
       z-index: 2;
     }
 
     .spinner-button {
-      width: var(--number-aware-input-spinner-button-size);
-      height: var(--number-aware-input-spinner-button-size);
+      width: var(--token-aware-input-spinner-button-size);
+      height: var(--token-aware-input-spinner-button-size);
       border: 0;
-      border-radius: var(--number-aware-input-spinner-radius);
-      background: var(--number-aware-input-spinner-background);
-      color: var(--number-aware-input-spinner-color);
-      box-shadow: var(--number-aware-input-spinner-shadow);
+      border-radius: var(--token-aware-input-spinner-radius);
+      background: var(--token-aware-input-spinner-background);
+      color: var(--token-aware-input-spinner-color);
+      box-shadow: var(--token-aware-input-spinner-shadow);
       font: 700 0.95rem/1 sans-serif;
       cursor: pointer;
       padding: 0;
@@ -1487,40 +1778,40 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       left: 0;
       right: 0;
       display: grid;
-      gap: var(--number-aware-input-suggestions-gap);
-      max-height: var(--number-aware-input-suggestions-max-height);
+      gap: var(--token-aware-input-suggestions-gap);
+      max-height: var(--token-aware-input-suggestions-max-height);
       overflow: auto;
-      padding: var(--number-aware-input-suggestions-padding);
-      border: 1px solid var(--number-aware-input-suggestions-border);
-      border-radius: calc(var(--number-aware-input-radius) - 2px);
-      background: var(--number-aware-input-suggestions-background);
-      box-shadow: var(--number-aware-input-suggestions-shadow);
+      padding: var(--token-aware-input-suggestions-padding);
+      border: 1px solid var(--token-aware-input-suggestions-border);
+      border-radius: calc(var(--token-aware-input-radius) - 2px);
+      background: var(--token-aware-input-suggestions-background);
+      box-shadow: var(--token-aware-input-suggestions-shadow);
       z-index: 3;
     }
 
     .suggestion-item {
       width: 100%;
       border: 0;
-      border-radius: var(--number-aware-input-suggestion-item-radius);
+      border-radius: var(--token-aware-input-suggestion-item-radius);
       background: transparent;
-      color: var(--number-aware-input-color);
+      color: var(--token-aware-input-color);
       font: 400 0.95rem/1.35 "Segoe UI", sans-serif;
       text-align: left;
-      padding: var(--number-aware-input-suggestion-item-padding);
+      padding: var(--token-aware-input-suggestion-item-padding);
       cursor: pointer;
     }
 
     .suggestion-item:hover {
-      background: var(--number-aware-input-suggestion-hover);
+      background: var(--token-aware-input-suggestion-hover);
     }
 
     .suggestion-item.active {
-      background: var(--number-aware-input-suggestion-active);
+      background: var(--token-aware-input-suggestion-active);
       font-weight: 500;
     }
 
     .suggestion-item:focus-visible {
-      outline: 2px solid var(--number-aware-input-border-focus);
+      outline: 2px solid var(--token-aware-input-border-focus);
       outline-offset: 1px;
     }
 
@@ -1541,10 +1832,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   `;
 }
 
-export default CaskoUiNumberAwareInputElement;
+export default CaskoUiTokenAwareInputElement;
 
 declare global {
   interface HTMLElementTagNameMap {
-    'number-aware-input': CaskoUiNumberAwareInputElement;
+    'token-aware-input': CaskoUiTokenAwareInputElement;
   }
 }

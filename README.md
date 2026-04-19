@@ -166,7 +166,64 @@ Readonly behavior:
 
 - `all`: blocks all editing and stepping.
 - `text`: only allows digits, sign characters, the active decimal separator, and whitespace.
-- `number`: allows text edits outside numeric tokens but blocks changes to the parsed numbers and disables stepping.
+- `number`: allows text edits outside numeric tokens but blocks changes to the parsed numbers and disables numeric stepping.
+
+## `token-aware-input`
+
+`token-aware-input` edits constrained string tokens from a known list of values.
+
+### Features
+
+- `allowed-values` constrains the editable token to a known list of strings.
+- `token-pattern` can define the full text shape and expose exactly one editable capture group.
+- `suggestion-mode="dropdown"` can show allowed values in a popover menu instead of using spinners.
+- `readonly` and `readonly-mode` are supported here as well.
+
+### Example
+
+```html
+<token-aware-input
+  value="Hello"
+  allowed-values='["Hello","Hi","Hey"]'></token-aware-input>
+```
+
+Pattern-aware constrained token:
+
+```html
+<token-aware-input
+  value="Viewport: 800x600"
+  token-pattern="^Viewport: (800x600|1024x768)$"
+  allowed-values='["800x600","1024x768"]'></token-aware-input>
+```
+
+Suggestion dropdown:
+
+```html
+<token-aware-input
+  value="Greeting: Hello"
+  token-pattern="^Greeting: (Hello|Hi|Hey)$"
+  allowed-values='["Hello","Hi","Hey"]'
+  suggestion-mode="dropdown"></token-aware-input>
+```
+
+### Public API
+
+- `value`: current text value
+- `multiline`: renders a `<textarea>` instead of an `<input>`
+- `allowed-values`: list of allowed string token values
+- `token-pattern`: full-value regex with exactly one editable capture group
+- `suggestion-mode`: `'none' | 'dropdown'`, default `'none'`
+- `readonly-mode`: `'none' | 'all' | 'text' | 'number'`, default `'none'`
+- `readonly`: compatibility alias for `readonly-mode="all"`
+- `show-spinner`: shows step controls for the active token when dropdown suggestions are not enabled
+
+Token behavior:
+
+- If `allowed-values` is present without `token-pattern`, the whole control value is the editable token.
+- If both `allowed-values` and `token-pattern` are present, the full value must match the pattern and capture group 1 becomes the editable token.
+- Allowed values are strings at the public API boundary.
+- `token-pattern` must resolve exactly one editable capture group in v1.
+- `suggestion-mode="dropdown"` hides spinners and shows the allowed values in a popover menu while the constrained token input is focused.
 
 ## `transform-box`
 
@@ -274,6 +331,9 @@ npm run dev
 The demo includes:
 
 - standalone `number-aware-input`
+- whole-value constrained token cycling
+- pattern-aware constrained token examples
+- suggestion dropdown token selection
 - pair-locked numeric stepping
 - partial readonly modes for text-only and number-only protection
 - standalone `selection-box`

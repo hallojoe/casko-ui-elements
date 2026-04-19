@@ -13,6 +13,14 @@ export {
   type ParsedNumber,
 } from './elements/number-aware-input.element';
 export {
+  CaskoUiTokenAwareInputElement,
+  type TokenAwareInputCause,
+  type TokenAwareInputReadonlyMode,
+  type TokenAwareInputSuggestionMode,
+  type TokenAwareInputStateDetail,
+  type ParsedValueToken,
+} from './elements/token-aware-input.element';
+export {
   CaskoUiSelectionBoxElement,
   type SelectionBoxChangeDetail,
   type SelectionBoxChangeSource,

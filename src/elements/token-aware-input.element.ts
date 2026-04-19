@@ -1690,8 +1690,8 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       --token-aware-input-suggestion-hover: rgba(15, 84, 73, 0.06);
       --token-aware-input-suggestion-active: rgba(15, 84, 73, 0.1);
       --token-aware-input-radius: 8px;
-      --number-aware-input-padding-y: .4rem;
-      --number-aware-input-padding-x: .55rem;
+      --token-aware-input-padding-y: .4rem;
+      --token-aware-input-padding-x: .55rem;
       --token-aware-input-input-min-height: 35px;
       --token-aware-input-textarea-min-height: 120px;
       --token-aware-input-textarea-line-height: 1.5;

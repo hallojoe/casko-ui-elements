@@ -1383,9 +1383,9 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       --number-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
       --number-aware-input-spinner-color: #ffffff;
       --number-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
-      --number-aware-input-spinner-button-size: 16px;
+      --number-aware-input-spinner-button-size: 19px;
       --number-aware-input-spinner-gap: 0px;
-      --number-aware-input-spinner-radius: 3px;
+      --number-aware-input-spinner-radius: 0;
       --number-aware-input-spinner-offset: 8px;
       --number-aware-input-spinner-inset: 4px;
       --number-aware-input-suggestions-max-height: 180px;
@@ -1398,10 +1398,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       --number-aware-input-suggestion-item-padding: 8px 10px;
       --number-aware-input-suggestion-hover: rgba(15, 84, 73, 0.06);
       --number-aware-input-suggestion-active: rgba(15, 84, 73, 0.1);
-      --number-aware-input-radius: 3px;
+      --number-aware-input-radius: 8px;
       --number-aware-input-padding-y: .4rem;
       --number-aware-input-padding-x: .55rem;
-      --number-aware-input-input-min-height: auto;
+      --number-aware-input-input-min-height: 35px;
       --number-aware-input-textarea-min-height: 120px;
       --number-aware-input-textarea-line-height: 1.5;
       --number-aware-input-font: 400 1rem/1.45 "Segoe UI", sans-serif;

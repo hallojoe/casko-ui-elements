@@ -529,17 +529,17 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      if (event.shiftKey) {
-        return;
-      }
-
+    if (event.key === 'Tab') {
       if (this.parsedNumbers.length === 0) {
         return;
       }
 
+      const moved = this.#moveActiveNumber(event.shiftKey ? -1 : 1);
+      if (!moved) {
+        return;
+      }
+
       event.preventDefault();
-      this.#moveActiveNumber(event.key === 'ArrowRight' ? 1 : -1);
       return;
     }
 
@@ -575,10 +575,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     this.#setCaretToTokenPart(firstNumber, 'integer');
   }
 
-  #moveActiveNumber(direction: 1 | -1) {
+  #moveActiveNumber(direction: 1 | -1): boolean {
     const control = this.controlElement;
     if (!control || this.parsedNumbers.length === 0) {
-      return;
+      return false;
     }
 
     this.#updateSelectionFromControl();
@@ -587,12 +587,12 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     if (activeNumber?.decimalSeparator) {
       if (direction === -1 && activeNumber.activePart === 'fraction') {
         this.#setCaretToTokenPart(activeNumber, 'integer');
-        return;
+        return true;
       }
 
       if (direction === 1 && activeNumber.activePart === 'integer') {
         this.#setCaretToTokenPart(activeNumber, 'fraction');
-        return;
+        return true;
       }
     }
 
@@ -604,12 +604,18 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       currentIndex === -1
         ? fallbackIndex
         : Math.max(0, Math.min(this.parsedNumbers.length - 1, currentIndex + direction));
+
+    if (currentIndex !== -1 && nextIndex === currentIndex) {
+      return false;
+    }
+
     const nextToken = this.parsedNumbers[nextIndex];
     const nextPart: NumberPart =
       nextToken.decimalSeparator && direction === -1 ? 'fraction' : 'integer';
 
     control.focus();
     this.#setCaretToTokenPart(nextToken, nextPart);
+    return true;
   }
 
   #setCaretToTokenPart(token: ParsedNumber, part: NumberPart) {

@@ -1674,7 +1674,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       --token-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
       --token-aware-input-spinner-color: #ffffff;
       --token-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
-      --token-aware-input-spinner-button-size: 17px;
+      --token-aware-input-spinner-button-size: 19px;
       --token-aware-input-spinner-gap: 0;
       --token-aware-input-spinner-radius: 0;
       --token-aware-input-spinner-offset: 8px;

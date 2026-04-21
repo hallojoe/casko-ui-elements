@@ -1,5 +1,36 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
+import {
+  allowedValuesConverter,
+  clampNumber,
+  emitBubbledEvent,
+  formatNumberToken,
+  getActiveParsedToken,
+  getCssPixelValue,
+  getFiniteOptionalNumber,
+  getPairLockedValue,
+  getPairTokenIndex,
+  getProposedValueFromBeforeInput,
+  getSelectionWithinToken,
+  getTokenPartCaret,
+  getTokenStartCaret,
+  normalizePatternInput,
+  parseNumbers,
+  replaceTokenValues,
+  resolvePatternToken,
+  sanitizePairLockMode,
+  sanitizeReadonlyMode,
+  sanitizeSuggestionMode,
+  toMeasureHtml,
+  type InputPairLockMode,
+  type InputReadonlyMode,
+  type InputSnapshot,
+  type InputSuggestionMode,
+  type NumberPart,
+  type SpinnerDirection,
+  type SpinnerPosition,
+  type TokenReplacement,
+} from './input-shared';
 
 export type TokenAwareInputCause =
   | 'input'
@@ -11,46 +42,13 @@ export type TokenAwareInputCause =
   | 'blur'
   | 'commit';
 
-export type TokenAwareInputReadonlyMode = 'none' | 'all' | 'text' | 'number';
-export type TokenAwareInputPairLockMode = 'step' | 'all';
+export type TokenAwareInputReadonlyMode = InputReadonlyMode;
+export type TokenAwareInputPairLockMode = InputPairLockMode;
 export type TokenAwareInputTokenMode = 'number' | 'values' | 'pattern-values';
-export type TokenAwareInputSuggestionMode = 'none' | 'dropdown';
-
-interface ParsedTokenBase {
-  raw: string;
-  value: number | string;
-  startIndex: number;
-  length: number;
-  endIndex: number;
-  mode: TokenAwareInputTokenMode;
-  activePart: 'integer' | 'fraction' | null;
-}
-
-export interface ParsedNumber extends ParsedTokenBase {
-  value: number;
-  mode: 'number';
-  decimalSeparator: '.' | ',' | null;
-  precision: number;
-  step: number;
-  integerStep: number;
-  decimalStep: number;
-}
-
-export interface ParsedValueToken extends ParsedTokenBase {
-  value: string;
-  mode: 'values' | 'pattern-values';
-  allowedIndex: number;
-}
-
-export type ParsedToken = ParsedNumber | ParsedValueToken;
-
-interface ResolvedPatternToken {
-  startIndex: number;
-  endIndex: number;
-  raw: string;
-}
-
-type NumberPart = 'integer' | 'fraction';
+export type TokenAwareInputSuggestionMode = InputSuggestionMode;
+export type ParsedNumber = import('./input-shared').ParsedNumber;
+export type ParsedValueToken = import('./input-shared').ParsedValueToken;
+export type ParsedToken = import('./input-shared').ParsedToken;
 
 export interface TokenAwareInputStateDetail {
   value: string;
@@ -64,283 +62,8 @@ export interface TokenAwareInputStateDetail {
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement;
 
-interface SpinnerPosition {
-  top: number;
-  left: number;
-  visible: boolean;
-}
-
-type SpinnerDirection = 1 | -1;
-
-interface TokenReplacement {
-  tokenIndex: number;
-  startIndex: number;
-  endIndex: number;
-  replacement: string;
-}
-
-interface InputSnapshot {
-  value: string;
-  numbers: ParsedToken[];
-  activeTokenIndex: number;
-}
-
 const SPINNER_REPEAT_DELAY_MS = 320;
 const SPINNER_REPEAT_INTERVAL_MS = 70;
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function toMeasureHtml(value: string): string {
-  return escapeHtml(value).replaceAll(' ', '&nbsp;').replaceAll('\n', '<br>');
-}
-
-function getPrecision(value: number): number {
-  const text = String(value);
-  const exponentMatch = text.match(/e-(\d+)$/i);
-
-  if (exponentMatch) {
-    return Number(exponentMatch[1]);
-  }
-
-  const decimalIndex = text.indexOf('.');
-  return decimalIndex === -1 ? 0 : text.length - decimalIndex - 1;
-}
-
-function allowedValuesConverter(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((entry) => String(entry));
-  }
-
-  if (typeof value !== 'string') {
-    return [];
-  }
-
-  const trimmedValue = value.trim();
-  if (!trimmedValue) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(trimmedValue);
-    return Array.isArray(parsed) ? parsed.map((entry) => String(entry)) : [];
-  } catch {
-    return trimmedValue.split(',').map((entry) => entry.trim()).filter((entry) => entry.length > 0);
-  }
-}
-
-function getTokenPattern(decimalSeparator: '.' | ','): RegExp {
-  const decimal = decimalSeparator === '.' ? '\\.' : ',';
-  return new RegExp(`[+-]?(?:\\d+(?:${decimal}\\d+)?|${decimal}\\d+)`, 'g');
-}
-
-function parseNumbers(
-  value: string,
-  decimalSeparator: '.' | ',',
-  integerStep: number,
-  decimalStep: number,
-  minValue?: number,
-  maxValue?: number,
-): ParsedNumber[] {
-  const matcher = getTokenPattern(decimalSeparator);
-  const numbers: ParsedNumber[] = [];
-
-  for (const match of value.matchAll(matcher)) {
-    const raw = match[0];
-    const startIndex = match.index ?? 0;
-    const normalized = decimalSeparator === ',' ? raw.replace(',', '.') : raw;
-    const numericValue = Number(normalized);
-
-    if (!Number.isFinite(numericValue)) {
-      continue;
-    }
-
-    if (minValue !== undefined && numericValue < minValue) {
-      continue;
-    }
-
-    if (maxValue !== undefined && numericValue > maxValue) {
-      continue;
-    }
-
-    const precision = raw.includes(decimalSeparator) ? raw.split(decimalSeparator)[1]?.length ?? 0 : 0;
-    numbers.push({
-      raw,
-      value: numericValue,
-      startIndex,
-      length: raw.length,
-      endIndex: startIndex + raw.length,
-      mode: 'number',
-      decimalSeparator: raw.includes(decimalSeparator) ? decimalSeparator : null,
-      precision,
-      step: precision > 0 ? decimalStep : integerStep,
-      integerStep,
-      decimalStep,
-      activePart: null,
-    });
-  }
-
-  return numbers;
-}
-
-function normalizePatternInput(value: string | RegExp | null | undefined): RegExp | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    if (value instanceof RegExp) {
-      const flags = `${value.flags.replace(/[gy]/g, '')}${value.flags.includes('d') ? '' : 'd'}`;
-      return new RegExp(value.source, flags);
-    }
-
-    return new RegExp(value, 'd');
-  } catch {
-    return null;
-  }
-}
-
-function resolvePatternToken(value: string, pattern: RegExp): ResolvedPatternToken | null {
-  const match = pattern.exec(value) as RegExpExecArray & {
-    indices?: Array<[number, number] | undefined>;
-  };
-
-  if (!match || match[0] !== value || !match.indices || match.indices.length !== 2) {
-    return null;
-  }
-
-  const group = match.indices[1];
-  if (!group) {
-    return null;
-  }
-
-  const [startIndex, endIndex] = group;
-  return {
-    startIndex,
-    endIndex,
-    raw: value.slice(startIndex, endIndex),
-  };
-}
-
-function selectionOverlapsToken(
-  selectionStart: number,
-  selectionEnd: number,
-  token: ParsedToken,
-): boolean {
-  const overlapStart = Math.max(selectionStart, token.startIndex);
-  const overlapEnd = Math.min(selectionEnd, token.endIndex);
-  return overlapStart < overlapEnd;
-}
-
-function getActiveNumber(
-  numbers: ParsedToken[],
-  selectionStart: number | null,
-  selectionEnd: number | null,
-): ParsedToken | null {
-  if (selectionStart === null || selectionEnd === null) {
-    return null;
-  }
-
-  if (selectionStart === selectionEnd) {
-    const caret = selectionStart;
-    const token = numbers.find((entry) => caret >= entry.startIndex && caret <= entry.endIndex) ?? null;
-    return token ? getActiveTokenWithPart(token, caret) : null;
-  }
-
-  const overlapping = numbers.filter((token) => selectionOverlapsToken(selectionStart, selectionEnd, token));
-  return overlapping.length === 1 ? getActiveTokenWithPart(overlapping[0], selectionStart) : null;
-}
-
-function getTokenWithActivePart(token: ParsedNumber, caret: number): ParsedNumber {
-  if (!token.decimalSeparator) {
-    return {
-      ...token,
-      step: token.integerStep,
-      activePart: 'integer',
-    };
-  }
-
-  const decimalOffset = token.raw.indexOf(token.decimalSeparator);
-  const decimalIndex = token.startIndex + decimalOffset;
-  const activePart = caret <= decimalIndex ? 'integer' : 'fraction';
-
-  return {
-    ...token,
-    step: activePart === 'fraction' ? token.decimalStep : token.integerStep,
-    activePart,
-  };
-}
-
-function getActiveTokenWithPart(token: ParsedToken, caret: number): ParsedToken {
-  return token.mode === 'number' ? getTokenWithActivePart(token, caret) : token;
-}
-
-function roundToPrecision(value: number, precision: number): number {
-  const factor = 10 ** precision;
-  return Math.round((value + Number.EPSILON) * factor) / factor;
-}
-
-function formatNumberToken(token: ParsedNumber, nextValue: number): string {
-  const rounded = roundToPrecision(nextValue, Math.max(token.precision, getPrecision(token.step)));
-  let nextText = token.precision > 0 ? rounded.toFixed(token.precision) : String(Math.round(rounded));
-
-  if (token.decimalSeparator === ',') {
-    nextText = nextText.replace('.', ',');
-  }
-
-  if (token.raw.startsWith('+') && !nextText.startsWith('-') && !nextText.startsWith('+')) {
-    nextText = `+${nextText}`;
-  }
-
-  return nextText;
-}
-
-function getTokenPartCaret(token: ParsedNumber, part: NumberPart): number {
-  if (!token.decimalSeparator || part === 'integer') {
-    return token.startIndex;
-  }
-
-  const decimalOffset = token.raw.indexOf(token.decimalSeparator);
-  return token.startIndex + decimalOffset + 1;
-}
-
-function getTokenStartCaret(token: ParsedToken): number {
-  return token.mode === 'number' ? getTokenPartCaret(token, 'integer') : token.startIndex;
-}
-
-function getCssPixelValue(value: string, fallback: number): number {
-  const parsed = parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function sanitizeReadonlyMode(value: string): TokenAwareInputReadonlyMode {
-  switch (value) {
-    case 'all':
-    case 'text':
-    case 'number':
-      return value;
-    default:
-      return 'none';
-  }
-}
-
-function sanitizePairLockMode(value: string): TokenAwareInputPairLockMode {
-  return value === 'all' ? 'all' : 'step';
-}
-
-function sanitizeSuggestionMode(value: string): TokenAwareInputSuggestionMode {
-  return value === 'dropdown' ? 'dropdown' : 'none';
-}
-
-function clampNumber(value: number, minValue?: number, maxValue?: number): number {
-  return Math.min(maxValue ?? value, Math.max(minValue ?? value, value));
-}
 
 @customElement('token-aware-input')
 export class CaskoUiTokenAwareInputElement extends LitElement {
@@ -425,7 +148,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   private spinnerRepeatTimeout?: number;
   private spinnerRepeatInterval?: number;
   private spinnerRepeatDirection?: SpinnerDirection;
-  private pendingInputSnapshot?: InputSnapshot;
+  private pendingInputSnapshot?: InputSnapshot<ParsedToken>;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -800,49 +523,6 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     }
   }
 
-  #getProposedValueFromBeforeInput(event: InputEvent): string | null {
-    const control = this.controlElement;
-    if (!control) {
-      return null;
-    }
-
-    const selectionStart = control.selectionStart ?? 0;
-    const selectionEnd = control.selectionEnd ?? selectionStart;
-    const before = control.value.slice(0, selectionStart);
-    const after = control.value.slice(selectionEnd);
-
-    switch (event.inputType) {
-      case 'insertText':
-      case 'insertCompositionText':
-      case 'insertReplacementText':
-      case 'insertFromPaste':
-      case 'insertFromDrop':
-        return `${before}${event.data ?? ''}${after}`;
-      case 'insertLineBreak':
-      case 'insertParagraph':
-        return `${before}\n${after}`;
-      case 'deleteContentBackward':
-        if (selectionStart !== selectionEnd) {
-          return `${before}${after}`;
-        }
-
-        return `${control.value.slice(0, Math.max(0, selectionStart - 1))}${after}`;
-      case 'deleteContentForward':
-        if (selectionStart !== selectionEnd) {
-          return `${before}${after}`;
-        }
-
-        return `${before}${control.value.slice(Math.min(control.value.length, selectionEnd + 1))}`;
-      case 'deleteByCut':
-      case 'deleteContent':
-      case 'deleteByDrag':
-      case 'deleteByComposition':
-        return `${before}${after}`;
-      default:
-        return null;
-    }
-  }
-
   #findTokenIndex(token: ParsedToken | null, numbers = this.parsedNumbers): number {
     if (!token) {
       return -1;
@@ -851,40 +531,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     return numbers.findIndex((entry) => entry.startIndex === token.startIndex);
   }
 
-  #getPairTokenIndex(activeIndex: number, totalTokens: number): number {
-    if (activeIndex < 0 || activeIndex >= totalTokens) {
-      return -1;
-    }
-
-    return activeIndex % 2 === 0
-      ? activeIndex + 1 < totalTokens
-        ? activeIndex + 1
-        : -1
-      : activeIndex - 1;
-  }
-
-  #getPairLockedValue(activeToken: ParsedNumber, nextActiveValue: number, pairedToken: ParsedNumber): number {
-    if (activeToken.value === 0) {
-      return pairedToken.value;
-    }
-
-    const nextValue = nextActiveValue * (pairedToken.value / activeToken.value);
-    return Number.isFinite(nextValue) ? nextValue : pairedToken.value;
-  }
-
-  #replaceTokenValues(value: string, replacements: TokenReplacement[]): string {
-    return [...replacements]
-      .sort((left, right) => right.startIndex - left.startIndex)
-      .reduce(
-        (nextValue, replacement) =>
-          nextValue.slice(0, replacement.startIndex) +
-          replacement.replacement +
-          nextValue.slice(replacement.endIndex),
-        value,
-      );
-  }
-
-  #createInputSnapshot(): InputSnapshot {
+  #createInputSnapshot(): InputSnapshot<ParsedToken> {
     const numbers = [...this.parsedNumbers];
     const activeTokenIndex = this.#findTokenIndex(this.activeNumber, numbers);
     return {
@@ -901,7 +548,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     }
 
     const previousValue = this.value;
-    const nextValue = this.#replaceTokenValues(this.value, [
+    const nextValue = replaceTokenValues(this.value, [
       {
         tokenIndex: this.#findTokenIndex(token),
         startIndex: token.startIndex,
@@ -933,25 +580,9 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     void this.updateComplete.then(() => this.#updateSpinnerPosition());
   }
 
-  #getSelectionWithinToken(
-    selectionStart: number | null,
-    selectionEnd: number | null,
-    token: ParsedToken,
-  ) {
-    const startOffset =
-      selectionStart === null ? 0 : Math.max(0, Math.min(token.length, selectionStart - token.startIndex));
-    const endOffset =
-      selectionEnd === null ? startOffset : Math.max(0, Math.min(token.length, selectionEnd - token.startIndex));
-
-    return {
-      startOffset,
-      endOffset,
-    };
-  }
-
   #syncPairLockedDirectEdit(
     nextValue: string,
-    snapshot: InputSnapshot,
+    snapshot: InputSnapshot<ParsedToken>,
     selectionStart: number | null,
     selectionEnd: number | null,
   ) {
@@ -964,7 +595,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return null;
     }
 
-    const pairTokenIndex = this.#getPairTokenIndex(snapshot.activeTokenIndex, snapshot.numbers.length);
+    const pairTokenIndex = getPairTokenIndex(snapshot.activeTokenIndex, snapshot.numbers.length);
 
     if (pairTokenIndex === -1) {
       return null;
@@ -1001,7 +632,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return null;
     }
 
-    const nextPairValue = this.#getPairLockedValue(
+    const nextPairValue = getPairLockedValue(
       previousActiveToken,
       nextActiveToken.value,
       previousPairToken,
@@ -1012,7 +643,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return null;
     }
 
-    const adjustedValue = this.#replaceTokenValues(nextValue, [
+    const adjustedValue = replaceTokenValues(nextValue, [
       {
         tokenIndex: pairTokenIndex,
         startIndex: nextPairToken.startIndex,
@@ -1032,7 +663,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       };
     }
 
-    const offsets = this.#getSelectionWithinToken(selectionStart, selectionEnd, nextActiveToken);
+    const offsets = getSelectionWithinToken(selectionStart, selectionEnd, nextActiveToken);
     const nextSelectionStart = adjustedActiveToken.startIndex + Math.min(offsets.startOffset, adjustedActiveToken.length);
     const nextSelectionEnd = adjustedActiveToken.startIndex + Math.min(offsets.endOffset, adjustedActiveToken.length);
 
@@ -1041,16 +672,6 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       selectionStart: nextSelectionStart,
       selectionEnd: nextSelectionEnd,
     };
-  }
-
-  #emitEvent<T>(eventName: string, detail: T) {
-    this.dispatchEvent(
-      new CustomEvent<T>(eventName, {
-        detail,
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 
   #createDetail(previousValue: string, cause: TokenAwareInputCause): TokenAwareInputStateDetail {
@@ -1066,17 +687,17 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   }
 
   #getMinValue(): number | undefined {
-    return Number.isFinite(this.min) ? this.min : undefined;
+    return getFiniteOptionalNumber(this.min);
   }
 
   #getMaxValue(): number | undefined {
-    return Number.isFinite(this.max) ? this.max : undefined;
+    return getFiniteOptionalNumber(this.max);
   }
 
   #recomputeState(cause: TokenAwareInputCause, previousValue = this.value) {
     this.parsedNumbers = this.#parseTokens(this.value);
-    this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
-    this.#emitEvent('token-aware-input-state-change', this.#createDetail(previousValue, cause));
+    this.activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+    emitBubbledEvent(this, 'token-aware-input-state-change', this.#createDetail(previousValue, cause));
     this.requestUpdate();
   }
 
@@ -1190,10 +811,15 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return;
     }
 
+    const control = this.controlElement;
+    if (!control) {
+      return;
+    }
+
     this.#updateSelectionFromControl();
-    this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+    this.activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     this.pendingInputSnapshot = this.#createInputSnapshot();
-    const proposedValue = this.#getProposedValueFromBeforeInput(event);
+    const proposedValue = getProposedValueFromBeforeInput(control, event);
 
     if (proposedValue === null) {
       return;
@@ -1233,7 +859,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       }
 
       this.#updateSelectionFromControl();
-      this.activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+      this.activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
 
       if (!this.activeNumber) {
         return;
@@ -1270,7 +896,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     }
 
     this.#updateSelectionFromControl();
-    const activeNumber = getActiveNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
+    const activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
 
     if (activeNumber?.mode === 'number' && activeNumber.decimalSeparator) {
       if (direction === -1 && activeNumber.activePart === 'fraction') {
@@ -1440,13 +1066,13 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     ];
 
     if (this.pairLock) {
-      const pairedTokenIndex = this.#getPairTokenIndex(activeTokenIndex, this.parsedNumbers.length);
+      const pairedTokenIndex = getPairTokenIndex(activeTokenIndex, this.parsedNumbers.length);
 
       if (pairedTokenIndex !== -1) {
         const pairedToken = this.parsedNumbers[pairedTokenIndex];
         if (pairedToken?.mode === 'number') {
           const nextPairedValue = clampNumber(
-            this.#getPairLockedValue(token, nextNumericValue, pairedToken),
+            getPairLockedValue(token, nextNumericValue, pairedToken),
             minValue,
             maxValue,
           );
@@ -1468,7 +1094,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return;
     }
 
-    const nextValue = this.#replaceTokenValues(this.value, replacements);
+    const nextValue = replaceTokenValues(this.value, replacements);
     const nextPart: NumberPart =
       token.decimalSeparator && token.activePart === 'fraction' ? 'fraction' : 'integer';
 
@@ -1521,7 +1147,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return;
     }
 
-    const nextValue = this.#replaceTokenValues(this.value, [
+    const nextValue = replaceTokenValues(this.value, [
       {
         tokenIndex: this.#findTokenIndex(token),
         startIndex: token.startIndex,
@@ -1538,7 +1164,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
 
     const reparsedNextToken = this.#parseTokens(nextValue)[0];
     if (reparsedNextToken) {
-      const offsets = this.#getSelectionWithinToken(this.selectionStart, this.selectionEnd, token);
+      const offsets = getSelectionWithinToken(this.selectionStart, this.selectionEnd, token);
       const nextSelectionStart =
         reparsedNextToken.startIndex + Math.min(offsets.startOffset, reparsedNextToken.length);
       const nextSelectionEnd =
@@ -1556,7 +1182,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   #emitCommit(cause: TokenAwareInputCause) {
     const detail = this.#createDetail(this.previousCommittedValue, cause);
     this.previousCommittedValue = this.value;
-    this.#emitEvent('token-aware-input-commit', detail);
+    emitBubbledEvent(this, 'token-aware-input-commit', detail);
   }
 
   #setSpinnerPosition(nextPosition: SpinnerPosition) {

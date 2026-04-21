@@ -26,6 +26,9 @@ export class CaskoUiDragBoxElement extends LitElement {
   @property({ type: Boolean, reflect: true })
   disabled = false;
 
+  @property({ type: Boolean, reflect: true })
+  selected = false;
+
   @property({ type: Boolean, attribute: 'clamp-to-bounds', reflect: true })
   clampToBounds = true;
 
@@ -54,6 +57,7 @@ export class CaskoUiDragBoxElement extends LitElement {
         tabindex=${this.disabled ? -1 : 0}
         role="group"
         aria-disabled=${String(this.disabled)}
+        aria-selected=${String(this.selected)}
         @pointerdown=${this.#onPointerDown}
         @pointermove=${this.#onPointerMove}
         @pointerup=${this.#onPointerUp}
@@ -125,7 +129,7 @@ export class CaskoUiDragBoxElement extends LitElement {
 
   #onPointerDown = (event: PointerEvent) => {
     if (this.disabled) return;
-    if (this.moveRequiresSelection && !this.hasAttribute('selected')) return;
+    if (this.moveRequiresSelection && !this.selected) return;
 
     const path = event.composedPath();
     const targetIsIgnored = path.some(

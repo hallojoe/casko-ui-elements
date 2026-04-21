@@ -211,9 +211,10 @@ export class CaskoUiTransformBoxElement extends LitElement {
         <drag-box
           .x=${geometry.x}
           .y=${geometry.y}
+          .selected=${this.selected}
           ?disabled=${this.disabled || !this.movable}
           .clampToBounds=${false}
-          ?moveRequiresSelection=${this.moveRequiresSelection}
+          .moveRequiresSelection=${this.moveRequiresSelection}
           @pointerdown=${this.#onMovePointerDown}
           @drag-box-change=${this.#onDragChange}
           @drag-box-commit=${this.#onDragCommit}>

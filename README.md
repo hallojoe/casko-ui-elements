@@ -22,7 +22,9 @@ Or import individual elements:
 import '@casko/ui-elements/selection-box';
 import '@casko/ui-elements/transform-box';
 import '@casko/ui-elements/drag-box';
+import '@casko/ui-elements/drag-scroll';
 import '@casko/ui-elements/number-aware-input';
+import '@casko/ui-elements/token-aware-input';
 ```
 
 ## `selection-box`
@@ -227,6 +229,48 @@ Token behavior:
 - `token-pattern` must resolve exactly one editable capture group in v1.
 - `suggestion-mode="dropdown"` hides spinners and shows the allowed values in a popover menu while the constrained token input is focused.
 
+## `drag-scroll`
+
+`drag-scroll` provides click-and-drag or touch-drag panning for oversized content.
+
+### Features
+
+- Uses pointer events, so the same panning interaction works with mouse, touch, and pen input.
+- Keeps drag tracking alive with pointer capture while the pointer stays down.
+- `nochilddrag` can reserve drag start for the container itself and ignore pointerdown on child content.
+- Leaves the slotted content layout entirely up to the consumer.
+
+### Example
+
+```html
+<drag-scroll>
+  <div style="width: 1200px; min-height: 320px;">Wide canvas</div>
+</drag-scroll>
+```
+
+With `nochilddrag`:
+
+```html
+<drag-scroll nochilddrag>
+  <div style="width: 1200px; min-height: 320px;">Only empty container space starts panning</div>
+</drag-scroll>
+```
+
+### Public API
+
+- `nochilddrag`: when present, starting a pointer gesture on child content does not begin drag-to-scroll
+
+## Browser Support
+
+This package currently targets current evergreen desktop and mobile browsers with native ES modules and modern DOM/CSS features.
+
+- Build target: `ES2022`
+- Distribution format: ESM only
+- Primary targets: current Chrome, Edge, Firefox, Safari, iOS Safari, and Chrome for Android
+- Interactions rely on modern features such as pointer events, `beforeinput`, `:focus-visible`, and `color-mix()`
+
+If you need wider or older browser coverage, test your exact support matrix before shipping and add app-level fallbacks where needed.
+
 ## `transform-box`
 
 `transform-box` provides move, resize, rotate, and optional keyboard nudging for slotted content.
@@ -281,6 +325,7 @@ Use `move-requires-selection` when an outer selection manager should decide whet
 - Default: `false`
 - When `true`, pointerdown on an unselected item will not start a move gesture.
 - This is especially useful with `selection-controlled` inside `selection-box`, where the first click should select and a later drag should move.
+- In `transform-box`, this gate follows the `selected` state on the transform box itself, so wrapper-managed selection works without extra wiring.
 
 #### `showControlsWhenUnselected`
 
@@ -317,6 +362,7 @@ Use `move-requires-selection` when `drag-box` participates in a larger selection
 - Default: `false`
 - When `true`, an unselected `drag-box` ignores move pointerdown gestures.
 - This lets wrappers such as `selection-box` own the first click without the item sliding away.
+- Set `selected` on the `drag-box` when some outer element owns selection state.
 
 `drag-box` also exposes its visible box as the selection bounds target, so `selection-box` drag-select can measure the real draggable rectangle instead of the full host.
 
@@ -357,6 +403,7 @@ npm run dev
 
 The demo includes:
 
+- standalone `drag-scroll` with pointer and touch panning
 - standalone `number-aware-input`
 - whole-value constrained token cycling
 - pattern-aware constrained token examples

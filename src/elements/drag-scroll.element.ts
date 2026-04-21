@@ -3,7 +3,6 @@ import { customElement, property, query } from 'lit/decorators.js';
 
 @customElement('drag-scroll')
 export class CaskoUiDragScrollElement extends LitElement {
-
   /**
    * Prevent dragging when the initial pointer-down happens on a child element.
    * Equivalent to the original `nochilddrag` attribute behavior.
@@ -17,6 +16,11 @@ export class CaskoUiDragScrollElement extends LitElement {
   private isDragging = false;
 
   /**
+   * The active pointer id while dragging.
+   */
+  private activePointerId?: number;
+
+  /**
    * Last known pointer coordinates.
    */
   private lastClientX = 0;
@@ -28,13 +32,14 @@ export class CaskoUiDragScrollElement extends LitElement {
   @query('.dragscroll-container')
   private containerElement!: HTMLDivElement;
 
-  /**
-   * Bound event handlers so they can be added/removed safely.
-   */
-  private readonly onMouseDown = (event: MouseEvent): void => {
+  private readonly onPointerDown = (event: PointerEvent): void => {
     const container = this.containerElement;
 
     if (!container) {
+      return;
+    }
+
+    if (!event.isPrimary || event.button !== 0) {
       return;
     }
 
@@ -47,18 +52,50 @@ export class CaskoUiDragScrollElement extends LitElement {
     }
 
     this.isDragging = true;
+    this.activePointerId = event.pointerId;
     this.lastClientX = event.clientX;
     this.lastClientY = event.clientY;
+    container.setPointerCapture(event.pointerId);
 
     event.preventDefault();
   };
 
-  private readonly onMouseUp = (): void => {
-    this.isDragging = false;
+  private readonly onPointerUp = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) {
+      return;
+    }
+
+    const container = this.containerElement;
+    if (container?.hasPointerCapture(event.pointerId)) {
+      container.releasePointerCapture(event.pointerId);
+    }
+
+    this.#stopDragging();
   };
 
-  private readonly onMouseMove = (event: MouseEvent): void => {
-    if (!this.isDragging) {
+  private readonly onLostPointerCapture = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) {
+      return;
+    }
+
+    this.#stopDragging();
+  };
+
+  private readonly onPointerCancel = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) {
+      return;
+    }
+
+    this.#stopDragging();
+  };
+
+  #stopDragging(): void {
+    this.isDragging = false;
+    this.activePointerId = undefined;
+  }
+
+  private readonly onPointerMove = (event: PointerEvent): void => {
+    if (!this.isDragging || event.pointerId !== this.activePointerId) {
       return;
     }
 
@@ -76,29 +113,19 @@ export class CaskoUiDragScrollElement extends LitElement {
 
     container.scrollLeft -= deltaX;
     container.scrollTop -= deltaY;
+
+    event.preventDefault();
   };
-
-  public connectedCallback(): void {
-    super.connectedCallback();
-
-    window.addEventListener('mouseup', this.onMouseUp);
-    window.addEventListener('mousemove', this.onMouseMove);
-  }
-
-  public disconnectedCallback(): void {
-    window.removeEventListener('mouseup', this.onMouseUp);
-    window.removeEventListener('mousemove', this.onMouseMove);
-
-    super.disconnectedCallback();
-  }
-
-  protected firstUpdated(): void {
-    this.containerElement.addEventListener('mousedown', this.onMouseDown);
-  }
 
   public render() {
     return html`
-      <div class="dragscroll-container">
+      <div
+        class="dragscroll-container ${this.isDragging ? 'dragging' : ''}"
+        @pointerdown=${this.onPointerDown}
+        @pointermove=${this.onPointerMove}
+        @pointerup=${this.onPointerUp}
+        @pointercancel=${this.onPointerCancel}
+        @lostpointercapture=${this.onLostPointerCapture}>
         <slot></slot>
       </div>
     `;
@@ -116,10 +143,12 @@ export class CaskoUiDragScrollElement extends LitElement {
       cursor: grab;
       width: 100%;
       height: 100%;
+      touch-action: none;
     }
 
-    .dragscroll-container:active {
+    .dragscroll-container.dragging {
       cursor: grabbing;
+      user-select: none;
     }
   `;
 }

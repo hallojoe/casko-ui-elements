@@ -393,7 +393,8 @@
         <h1>Casko UI Elements</h1>
         <p>
           This demo page shows the currently shipped custom elements. Drag the gallery to scroll,
-          then move, resize, rotate, and keyboard-nudge the transform box.
+          then move, resize, rotate, and keyboard-nudge the transform box. The drag interactions
+          use pointer events, so the same gestures work with mouse, touch, and pen input.
         </p>
       </section>
 
@@ -401,7 +402,8 @@
         <article class="panel">
           <h2>Drag Scroll</h2>
           <p class="hint">
-            Click and drag anywhere inside the viewport to pan across the oversized content.
+            Click, touch-drag, or pen-drag anywhere inside the viewport to pan across the oversized
+            content.
           </p>
           <drag-scroll>
             <div class="scroll-canvas">
@@ -418,7 +420,8 @@
           <h2>Drag Box</h2>
           <p class="hint">
             This is the new generic positioned drag primitive. It can drag any slotted content
-            without resize or rotate behavior.
+            without resize or rotate behavior, and it shares the same pointer-based drag model used
+            by the rest of the stage components.
           </p>
           <div class="stage" style="min-height: 320px;">
             <drag-box id="drag-box-demo" x="56" y="44">

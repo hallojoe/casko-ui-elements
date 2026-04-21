@@ -212,79 +212,98 @@
         gap: 14px;
       }
 
-      .selection-group {
-        display: grid;
-        gap: 12px;
+      .selection-demo .subtle {
+        max-width: 760px;
       }
 
-      .selection-items {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 12px;
+      .selection-stage-frame {
+        overflow: auto;
+        border-radius: 22px;
+        border: 1px solid rgba(15, 84, 73, 0.14);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(239, 245, 242, 0.94));
+        padding: 16px;
       }
 
-      .selection-item {
-        min-height: 92px;
-        border-radius: 16px;
-        border: 1px solid rgba(15, 84, 73, 0.12);
-        background: rgba(255, 255, 255, 0.92);
-        padding: 14px;
-        display: grid;
-        gap: 8px;
-        align-content: start;
+      .selection-stage {
+        position: relative;
+        display: block;
+        width: 800px;
+        height: 600px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(15, 84, 73, 0.16);
+        background:
+          radial-gradient(circle at top left, rgba(15, 84, 73, 0.14), transparent 32%),
+          linear-gradient(rgba(15, 84, 73, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 84, 73, 0.08) 1px, transparent 1px),
+          linear-gradient(180deg, #ffffff 0%, #edf5f1 100%);
+        background-size: auto, 32px 32px, 32px 32px, auto;
+      }
+
+      .selection-stage > * {
         cursor: pointer;
       }
 
-      .selection-item strong {
-        font-size: 0.95rem;
-      }
-
-      .selection-item span {
-        color: #55726b;
-        font-size: 0.88rem;
-        line-height: 1.35;
-      }
-
-      .selection-item .nested-chip {
-        width: fit-content;
-        border-radius: 999px;
-        padding: 3px 10px;
-        background: rgba(15, 84, 73, 0.1);
-        color: #17322d;
-        font-size: 0.75rem;
-      }
-
-      .selection-item[ignore] {
-        opacity: 0.62;
-        cursor: default;
-      }
-
-      .drag-select-stage {
-        min-height: 300px;
-      }
-
-      .drag-select-items {
-        display: block;
-        width: 100%;
-        height: 300px;
-      }
-
-      .drag-select-card {
+      .selection-stage img,
+      .selection-stage svg,
+      .selection-stage article {
         position: absolute;
-        width: 120px;
-        min-height: 84px;
-        padding: 14px;
-        border-radius: 16px;
-        border: 1px solid rgba(15, 84, 73, 0.1);
-        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .selection-stage img {
+        left: 56px;
+        top: 60px;
+        width: 244px;
+        height: 184px;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 0 18px 36px rgba(18, 45, 39, 0.16);
+      }
+
+      .selection-stage svg {
+        left: 438px;
+        top: 72px;
+        width: 248px;
+        height: 188px;
+        overflow: visible;
+      }
+
+      .selection-stage article {
+        left: 164px;
+        top: 338px;
+        width: 432px;
+        padding: 20px 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(15, 84, 73, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 24px 48px rgba(18, 45, 39, 0.1);
         display: grid;
+        gap: 10px;
+      }
+
+      .selection-stage article strong {
+        font-size: 1.1rem;
+      }
+
+      .selection-stage article p {
+        color: #55726b;
+        line-height: 1.5;
+      }
+
+      .selection-stage-meta {
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
       }
 
-      .drag-select-card:nth-child(1) { left: 24px; top: 26px; }
-      .drag-select-card:nth-child(2) { left: 188px; top: 44px; }
-      .drag-select-card:nth-child(3) { left: 74px; top: 170px; }
-      .drag-select-card:nth-child(4) { left: 250px; top: 164px; }
+      .selection-stage-meta span {
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: rgba(15, 84, 73, 0.1);
+        color: #244941;
+        font-size: 0.8rem;
+      }
 
       .combo-stage {
         position: relative;
@@ -437,108 +456,74 @@
         <article class="panel">
           <h2>Selection Box</h2>
           <p class="hint">
-            Click a card to toggle it. In multi mode, plain click behaves like single selection and
-            <kbd>Shift</kbd>+click adds or removes extra selections.
+            This dedicated scene uses mixed content types as direct children of
+            <code>selection-box</code>. Click to single-select, <kbd>Shift</kbd>+click to add more,
+            or drag across empty space to marquee-select multiple items.
           </p>
           <div class="selection-demo">
-            <div class="selection-group">
-              <p class="subtle">Single mode</p>
-              <selection-box id="selection-single-demo" class="selection-items">
-                <article class="selection-item" value="alpha" selected>
-                  <strong>Alpha</strong>
-                  <span>Starts selected and deselects on click.</span>
-                </article>
-                <article class="selection-item" value="beta">
-                  <strong>Beta</strong>
-                  <span>Plain click moves selection here.</span>
-                </article>
-                <article class="selection-item" value="gamma" ignore>
-                  <strong>Ignored</strong>
-                  <span>This direct child never changes selection.</span>
-                </article>
-              </selection-box>
-            </div>
-
-            <div class="selection-group">
-              <p class="subtle">Multi mode</p>
+            <p class="subtle">
+              Stage size is fixed at <code>800x600</code> so the selection bounds stay predictable.
+              The three selectable direct children below are an <code>img</code>, an inline
+              <code>svg</code>, and a semantic <code>article</code>.
+            </p>
+            <div class="selection-stage-frame">
               <selection-box
-                id="selection-multi-demo"
-                class="selection-items"
+                id="selection-stage-demo"
+                class="selection-stage"
                 selection-mode="multiple"
-                multi-select-key="shift">
-                <article class="selection-item" value="one" selected>
-                  <strong>One</strong>
-                  <span>Plain click resets to one; Shift-click toggles extras.</span>
-                  <div class="nested-chip">Nested content</div>
-                </article>
-                <article class="selection-item" value="two">
-                  <strong>Two</strong>
-                  <span><kbd>Shift</kbd>+click adds or removes this item.</span>
-                </article>
-                <article class="selection-item" value="three" selected>
-                  <strong>Three</strong>
-                  <span>Initial extras are adopted in multi mode.</span>
-                </article>
-                <article class="selection-item" value="four">
-                  <strong>Four</strong>
-                  <span>Nested clicks still target the direct child item.</span>
-                  <div class="nested-chip">Nested content</div>
+                multi-select-key="shift"
+                drag-select
+                deselect-on-outside-click>
+                <img
+                  value="image"
+                  alt="Studio desk with color swatches and layout sketches"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 368'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23f6d6b0'/%3E%3Cstop offset='45%25' stop-color='%23dc8553'/%3E%3Cstop offset='100%25' stop-color='%23653b2a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='488' height='368' rx='34' fill='url(%23bg)'/%3E%3Ccircle cx='118' cy='94' r='48' fill='rgba(255,255,255,0.28)'/%3E%3Crect x='58' y='178' width='180' height='112' rx='18' fill='rgba(255,255,255,0.8)'/%3E%3Crect x='258' y='92' width='166' height='210' rx='24' fill='rgba(255,255,255,0.9)'/%3E%3Cpath d='M84 214h128M84 242h90M84 270h110' stroke='%23924e2d' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M290 126h102v92H290z' fill='%23ffd89b'/%3E%3Cpath d='M302 238l32-42 30 24 34-46 24 64z' fill='%23cf7347'/%3E%3C/svg%3E" />
+
+                <svg value="svg" viewBox="0 0 248 188" aria-label="Decorative vector poster" selected>
+                  <defs>
+                    <linearGradient id="selection-demo-svg-fill" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#366593" />
+                      <stop offset="100%" stop-color="#88c6ff" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="6" y="6" width="236" height="176" rx="28" fill="url(#selection-demo-svg-fill)" />
+                  <circle cx="70" cy="58" r="26" fill="rgba(255,255,255,0.24)" />
+                  <path
+                    d="M40 138c22-42 52-63 92-63 29 0 56 11 80 35"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.82)"
+                    stroke-width="16"
+                    stroke-linecap="round" />
+                  <path
+                    d="M132 46l54 40-54 40z"
+                    fill="#f8fbff"
+                    opacity="0.94" />
+                  <text
+                    x="34"
+                    y="164"
+                    fill="#f8fbff"
+                    font-size="24"
+                    font-family="'Segoe UI', sans-serif"
+                    font-weight="700">
+                    Vector Poster
+                  </text>
+                </svg>
+
+                <article value="html">
+                  <strong>HTML Editorial Card</strong>
+                  <p>
+                    This is regular structured HTML content. It behaves the same as the bitmap image
+                    and the inline SVG because <code>selection-box</code> only cares that each one is
+                    a direct child.
+                  </p>
+                  <div class="selection-stage-meta">
+                    <span>HTML</span>
+                    <span>Focusable</span>
+                    <span>Selectable</span>
+                  </div>
                 </article>
               </selection-box>
             </div>
-
-            <div class="selection-group">
-              <p class="subtle">Multiple toggle mode</p>
-              <selection-box
-                id="selection-toggle-demo"
-                class="selection-items"
-                selection-mode="multiple"
-                multi-select-key="none">
-                <article class="selection-item" value="red" selected>
-                  <strong>Red</strong>
-                  <span>Plain click toggles this item only.</span>
-                </article>
-                <article class="selection-item" value="green">
-                  <strong>Green</strong>
-                  <span>Existing selections stay untouched.</span>
-                </article>
-                <article class="selection-item" value="blue">
-                  <strong>Blue</strong>
-                  <span>Use this mode for checkbox-like selection.</span>
-                </article>
-              </selection-box>
-            </div>
-
-            <div class="selection-group">
-              <p class="subtle">Drag select</p>
-              <div class="stage drag-select-stage">
-                <selection-box
-                  id="selection-drag-demo"
-                  class="drag-select-items"
-                  selection-mode="multiple"
-                  multi-select-key="none"
-                  deselect-on-outside-click
-                  drag-select>
-                  <article class="drag-select-card" value="north">
-                    <strong>North</strong>
-                    <span>Drag from empty space to add me. Click outside to clear.</span>
-                  </article>
-                  <article class="drag-select-card" value="east">
-                    <strong>East</strong>
-                    <span>Overlap selects me.</span>
-                  </article>
-                  <article class="drag-select-card" value="south" selected>
-                    <strong>South</strong>
-                    <span>Existing selection is preserved.</span>
-                  </article>
-                  <article class="drag-select-card" value="west">
-                    <strong>West</strong>
-                    <span>Drag selection is additive.</span>
-                  </article>
-                </selection-box>
-              </div>
-            </div>
-
             <div class="log" id="selection-log">Waiting for selection...</div>
           </div>
         </article>
@@ -776,10 +761,7 @@
       const dragLog = document.querySelector('#drag-log');
       const numberDemos = Array.from(document.querySelectorAll('[data-number-label]'));
       const numberLog = document.querySelector('#number-log');
-      const selectionSingleDemo = document.querySelector('#selection-single-demo');
-      const selectionMultiDemo = document.querySelector('#selection-multi-demo');
-      const selectionToggleDemo = document.querySelector('#selection-toggle-demo');
-      const selectionDragDemo = document.querySelector('#selection-drag-demo');
+      const selectionStageDemo = document.querySelector('#selection-stage-demo');
       const selectionLog = document.querySelector('#selection-log');
       const comboSelectionDemo = document.querySelector('#combo-selection-demo');
       const comboLog = document.querySelector('#combo-log');
@@ -827,7 +809,7 @@ source: ${detail.source}`;
         });
       }
 
-      if (selectionLog && selectionSingleDemo && selectionMultiDemo && selectionToggleDemo && selectionDragDemo) {
+      if (selectionLog && selectionStageDemo) {
         const renderSelectionLog = (label, detail) => {
           const selectedValues = detail.selectedItems.map((item) => item.value ?? '(null)').join(', ');
           const changedValues = detail.changedItems
@@ -842,20 +824,13 @@ changed: ${changedValues || 'none'}
 items: ${detail.items.map((item) => `${item.value ?? '(null)'}=${item.selected}`).join(', ')}`;
         };
 
-        const bindSelectionLog = (element, label) => {
-          element.addEventListener('selection-box-change', (event) => {
-            renderSelectionLog(`${label} change`, event.detail);
-          });
+        selectionStageDemo.addEventListener('selection-box-change', (event) => {
+          renderSelectionLog('stage change', event.detail);
+        });
 
-          element.addEventListener('selection-box-commit', (event) => {
-            renderSelectionLog(`${label} commit`, event.detail);
-          });
-        };
-
-        bindSelectionLog(selectionSingleDemo, 'single');
-        bindSelectionLog(selectionMultiDemo, 'multi');
-        bindSelectionLog(selectionToggleDemo, 'toggle');
-        bindSelectionLog(selectionDragDemo, 'drag');
+        selectionStageDemo.addEventListener('selection-box-commit', (event) => {
+          renderSelectionLog('stage commit', event.detail);
+        });
       }
 
       if (comboSelectionDemo && comboLog) {

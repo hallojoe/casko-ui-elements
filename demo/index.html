@@ -51,8 +51,14 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 24px;
+      }
+
+      @media (max-width: 860px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       .panel {
@@ -188,6 +194,52 @@
 
       number-aware-input {
         --number-aware-input-radius: 8px;
+      }
+
+      circular-sector-svg {
+        width: 100%;
+        aspect-ratio: 1;
+        color: #17322d;
+      }
+
+      .sector-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .sector-demo-card {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .sector-demo-frame {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        overflow: hidden;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 84, 73, 0.14);
+        background:
+          linear-gradient(45deg, rgba(15, 84, 73, 0.08) 25%, transparent 25%),
+          linear-gradient(135deg, rgba(15, 84, 73, 0.08) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(15, 84, 73, 0.08) 75%),
+          linear-gradient(135deg, transparent 75%, rgba(15, 84, 73, 0.08) 75%);
+        background-color: #ffffff;
+        background-position: 0 0, 10px 0, 10px -10px, 0 10px;
+        background-size: 20px 20px;
+      }
+
+      .sector-demo-card strong {
+        color: #17322d;
+        font-size: 0.95rem;
+      }
+
+      @media (max-width: 680px) {
+        .sector-demo-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       selection-box {
@@ -418,6 +470,28 @@
       </section>
 
       <section class="grid">
+        <article class="panel">
+          <h2>Circular Sector SVG</h2>
+          <p class="hint">
+            These examples use a single config object to render dashboard-compatible circular,
+            annular, and rectangular sector SVGs from <code>@casko/circular-sector</code>.
+          </p>
+          <div class="sector-demo-grid">
+            <div class="sector-demo-card">
+              <strong>Layered annular sectors</strong>
+              <div class="sector-demo-frame">
+                <circular-sector-svg id="sector-annular-demo"></circular-sector-svg>
+              </div>
+            </div>
+            <div class="sector-demo-card">
+              <strong>Rectangular sector mode</strong>
+              <div class="sector-demo-frame">
+                <circular-sector-svg id="sector-rectangular-demo"></circular-sector-svg>
+              </div>
+            </div>
+          </div>
+        </article>
+
         <article class="panel">
           <h2>Drag Scroll</h2>
           <p class="hint">
@@ -767,6 +841,148 @@
       const comboLog = document.querySelector('#combo-log');
       const comboStepInput = document.querySelector('#combo-step-input');
       const comboMoveButtons = Array.from(document.querySelectorAll('[data-combo-move]'));
+      const sectorAnnularDemo = document.querySelector('#sector-annular-demo');
+      const sectorRectangularDemo = document.querySelector('#sector-rectangular-demo');
+
+      const sectorPalette = [
+        {
+          name: 'Warm Palette',
+          colors: [
+            { fill: '#f59e0b', stroke: '#92400e', text: '#17322d' },
+            { fill: '#ef4444', stroke: '#991b1b', text: '#17322d' },
+            { fill: '#14b8a6', stroke: '#0f766e', text: '#17322d' },
+            { fill: '#3b82f6', stroke: '#1d4ed8', text: '#17322d' },
+            { fill: '#8b5cf6', stroke: '#6d28d9', text: '#17322d' },
+            { fill: '#22c55e', stroke: '#15803d', text: '#17322d' },
+          ],
+        },
+      ];
+
+      if (sectorAnnularDemo) {
+        sectorAnnularDemo.showGuideCircle = true;
+        sectorAnnularDemo.config = {
+          svg: {
+            title: 'Layered annular sectors',
+            backgroundColor: '#fffaf0',
+            width: 512,
+            height: 512,
+            viewBoxWidth: 512,
+            viewBoxHeight: 512,
+          },
+          colorPalettes: sectorPalette,
+          globalSettings: {
+            centerX: 256,
+            centerY: 256,
+            gap: 8,
+            thetaDegrees: -90,
+            pathMode: 'arc',
+            roundedCornerRadius: 8,
+          },
+          layers: [
+            {
+              id: 'outer-ring',
+              name: 'Outer ring',
+              settings: {
+                valueItems: [
+                  { value: 5, label: 'A' },
+                  { value: 3, label: 'B' },
+                  { value: 4, label: 'C' },
+                  { value: 2, label: 'D' },
+                  { value: 6, label: 'E' },
+                ],
+                radiusValues: '214',
+                heightValues: '70',
+                fillPaletteName: 'Warm Palette',
+                strokePaletteName: 'Warm Palette',
+                fillOpacity: 0.82,
+                strokeWidth: 2,
+              },
+              textSettings: {
+                anchor: 'middle-mid',
+                placementStrategy: 'path',
+                fontSize: 16,
+                fontWeight: 700,
+              },
+            },
+            {
+              id: 'inner-ring',
+              name: 'Inner ring',
+              settings: {
+                values: '1 1 2 3 5 8',
+                radiusValues: '128',
+                heightValues: '52',
+                thetaDegrees: -30,
+                pathMode: 'beveled',
+                pathModeValue: 10,
+                fillPaletteName: 'Warm Palette',
+                strokePaletteName: 'Warm Palette',
+                fillOpacity: 0.62,
+                strokeWidth: 1.5,
+              },
+              textSettings: {
+                anchor: 'centroid',
+                fontSize: 13,
+                fontWeight: 700,
+              },
+            },
+          ],
+        };
+      }
+
+      if (sectorRectangularDemo) {
+        sectorRectangularDemo.config = {
+          svg: {
+            title: 'Rectangular sectors',
+            backgroundColor: '#f8fbff',
+            width: 512,
+            height: 512,
+            viewBoxWidth: 512,
+            viewBoxHeight: 512,
+          },
+          colorPalettes: sectorPalette,
+          globalSettings: {
+            values: '8 5 3 2 1',
+            centerX: 256,
+            centerY: 256,
+            radiusValues: '260',
+            heightValues: '190',
+            gap: 8,
+            rectangularMode: 'horizontal',
+            rectangularLayout: 'many',
+            rectangularDirection: 'left-right',
+            rectangularSize: 34,
+            roundedCornerRadius: 8,
+            fillPaletteName: 'Warm Palette',
+            strokePaletteName: 'Warm Palette',
+            fillOpacity: 0.78,
+          },
+          layers: [
+            {
+              id: 'bar-stack',
+              name: 'Bar stack',
+              settings: {
+                valueItems: [
+                  { value: 8, label: '8' },
+                  { value: 5, label: '5' },
+                  { value: 3, label: '3' },
+                  { value: 2, label: '2' },
+                  { value: 1, label: '1' },
+                ],
+                fillPaletteName: 'Warm Palette',
+                strokePaletteName: 'Warm Palette',
+                strokeWidth: 2,
+              },
+              textSettings: {
+                anchor: 'middle-end',
+                placementStrategy: 'radial-outward',
+                radialOffset: 14,
+                fontSize: 14,
+                fontWeight: 700,
+              },
+            },
+          ],
+        };
+      }
 
       customElements.whenDefined('transform-box').then(() => {
         const comboTransformBoxes = comboSelectionDemo?.querySelectorAll('transform-box') ?? [];

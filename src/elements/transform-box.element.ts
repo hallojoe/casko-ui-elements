@@ -3,9 +3,9 @@ import { customElement, property } from 'lit/decorators.js';
 import {
   getLocalPoint,
   type DragPoint,
-} from './drag-box.controller';
-import './drag-box.element';
-import type { DragBoxChangeDetail } from './drag-box.element';
+} from './drag-box/drag-box.controller';
+import './drag-box/drag-box.element';
+import type { DragBoxChangeDetail } from './drag-box/drag-box.element';
 
 export type TransformBoxChangeSource = 'move' | 'resize' | 'rotate' | 'keyboard';
 export type TransformBoxSelectSource = 'pointer' | 'focus' | 'blur';

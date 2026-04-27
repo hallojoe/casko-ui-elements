@@ -2,7 +2,47 @@ export {
   CaskoUiDragBoxElement,
   type DragBoxChangeDetail,
   type DragBoxChangeSource,
-} from './elements/drag-box.element';
+} from './elements/drag-box/drag-box.element';
+export {
+  CaskoUiCircularSectorLayerSvgElement,
+} from './elements/circular-sector-svg/circular-sector-layer-svg.element';
+export {
+  CaskoUiCircularSectorSvgElement,
+  renderCircularSectorLayer,
+  renderCircularSectorSvg,
+  type CircularSectorSvgErrorMode,
+} from './elements/circular-sector-svg/circular-sector-svg.element';
+export {
+  buildCircularSectorRenderedLayer,
+  buildCircularSectorRenderedSvg,
+  buildCircularSectorTextItems,
+  DEFAULT_CIRCULAR_SECTOR_GLOBAL_SETTINGS,
+  DEFAULT_CIRCULAR_SECTOR_SVG_SETTINGS,
+  parseCircularSectorNumbers,
+  type CircularSectorAlignment,
+  type CircularSectorColorDefinition,
+  type CircularSectorColorPaletteDefinition,
+  type CircularSectorGenerationSettings,
+  type CircularSectorLayerDecoration,
+  type CircularSectorLayerDefinition,
+  type CircularSectorLayerOverrides,
+  type CircularSectorLayerTextOverrides,
+  type CircularSectorPathMode,
+  type CircularSectorPathTextItem,
+  type CircularSectorPositionedTextItem,
+  type CircularSectorPreviewItem,
+  type CircularSectorPreviewTextItems,
+  type CircularSectorRectangularDirection,
+  type CircularSectorRectangularLayout,
+  type CircularSectorRectangularMode,
+  type CircularSectorRenderedLayer,
+  type CircularSectorRenderedSvg,
+  type CircularSectorSvgConfig,
+  type CircularSectorSvgSettings,
+  type CircularSectorTextAnchor,
+  type CircularSectorTextPlacementStrategy,
+  type CircularSectorValueItem,
+} from './elements/circular-sector-svg/circular-sector-svg.model';
 export { CaskoUiDragScrollElement } from './elements/drag-scroll.element';
 export {
   CaskoUiNumberAwareInputElement,

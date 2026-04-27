@@ -7,6 +7,8 @@
   "sideEffects": [
     "./dist/index.js",
     "./dist/define-all.js",
+    "./dist/elements/circular-sector-layer-svg.js",
+    "./dist/elements/circular-sector-svg.js",
     "./dist/elements/drag-box.js",
     "./dist/elements/drag-scroll.js",
     "./dist/elements/number-aware-input.js",
@@ -21,6 +23,14 @@
     "./define-all": {
       "types": "./dist/define-all.d.ts",
       "import": "./dist/define-all.js"
+    },
+    "./circular-sector-layer-svg": {
+      "types": "./dist/elements/circular-sector-layer-svg.element.d.ts",
+      "import": "./dist/elements/circular-sector-layer-svg.js"
+    },
+    "./circular-sector-svg": {
+      "types": "./dist/elements/circular-sector-svg.element.d.ts",
+      "import": "./dist/elements/circular-sector-svg.js"
     },
     "./drag-box": {
       "types": "./dist/elements/drag-box.element.d.ts",
@@ -52,6 +62,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@casko/circular-sector": "3.1.7-pre",
     "lit": "^3.0.0"
   },
   "devDependencies": {

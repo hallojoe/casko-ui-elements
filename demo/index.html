@@ -202,6 +202,21 @@
         color: #17322d;
       }
 
+      .circular-input-demo {
+        display: grid;
+        gap: 14px;
+      }
+
+      .circular-input-stage {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+      }
+
+      .circular-input-stage circular-input {
+        --circular-input-size: min(320px, 100%);
+      }
+
       .angle-demo-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -595,6 +610,41 @@
                 <circular-sector-svg id="sector-rectangular-demo"></circular-sector-svg>
               </div>
             </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Circular Input</h2>
+          <p class="hint">
+            This POC edits simplified circular sector value, radius, and height data. Drag the
+            outer-center handles around the circle to redistribute values, or drag the two handles
+            on each radial line to adjust radius and height. Rotation is the first outer ring,
+            with rounded corners and gap controls on dotted bows outside it.
+          </p>
+          <div class="circular-input-demo">
+            <div class="circular-input-stage">
+              <circular-input id="circular-input-demo"></circular-input>
+            </div>
+            <div class="circular-input-stage">
+              <circular-input
+                id="circular-input-start-demo"
+                allow-crossing="false"
+                gap="8"
+                border-radius="8"
+                value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
+                gap-handle-path="M -5 -5 H 5 V 5 H -5 Z"
+                border-radius-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
+                start-angle-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
+                ></circular-input>
+            </div>
+            <div class="circular-input-stage">
+              <circular-input
+                id="circular-input-hidden-demo"
+                gap="10"
+                border-radius="6"
+                hidden-controls="radius,height,gap"></circular-input>
+            </div>
+            <div class="log" id="circular-input-log">Waiting for circular input...</div>
           </div>
         </article>
 
@@ -1236,14 +1286,71 @@
 
               <div class="anchor-demo-item">
                 <anchor-point-input
-                  id="anchor-hidden-disabled-demo"
+                  id="anchor-hidden-disabled-demo1"
                   class="anchor-demo-cool"
                   label="Hidden anchors"
                   value="block-center-inline-center"
-                  disabled-values='["block-center-inline-start","block-center-inline-end","block-start-inline-center"]'
+                  disabled-values='["block-start-inline-start","block-start-inline-center","block-start-inline-end","block-center-inline-start","block-center-inline-end","block-end-inline-start","block-end-inline-center","block-end-inline-end"]'
                   hide-disabled-anchors></anchor-point-input>
-                <p class="subtle">Hidden disabled anchors are skipped by keyboard navigation</p>
               </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo2"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-center","block-start-inline-end","block-center-inline-start","block-center-inline-center","block-center-inline-end","block-end-inline-start","block-end-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo3"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-center","block-start-inline-end","block-center-inline-start","block-center-inline-end","block-end-inline-start", "block-end-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo4"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-center","block-center-inline-start","block-center-inline-center","block-center-inline-end","block-end-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo5"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-center","block-center-inline-start","block-center-inline-end","block-end-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo6"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-center","block-center-inline-center","block-end-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+              </div>
+
+
+
+
+
+
+
+
 
               <div class="anchor-demo-item">
                 <anchor-point-input
@@ -1254,6 +1361,22 @@
                   disabled-values='["block-start-inline-start","block-start-inline-end","block-center-inline-center","block-end-inline-start","block-end-inline-end"]'
                   hide-disabled-anchors></anchor-point-input>
                 <p class="subtle">Hidden disabled anchors are skipped by keyboard navigation</p>
+              </div>
+
+
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  style="--anchor-point-input-handle-size: 16px;"
+                  id="anchor-trigger-demo"
+                  label="Navigation pad"
+                  hold-trigger
+                  hold-trigger-mode="any"
+                  hide-disabled-anchors
+                  handle-path="M 0 -16 L 16 16 L -16 16 Z"
+                  disabled-values='["block-center-inline-center"]'
+                  rotate-handle></anchor-point-input>
+                <p class="subtle">Hold Space or pointer to emit repeated trigger events</p>
               </div>
 
 
@@ -1512,6 +1635,10 @@
       const comboOrderButtons = Array.from(document.querySelectorAll('[data-combo-order]'));
       const sectorAnnularDemo = document.querySelector('#sector-annular-demo');
       const sectorRectangularDemo = document.querySelector('#sector-rectangular-demo');
+      const circularInputDemo = document.querySelector('#circular-input-demo');
+      const circularInputStartDemo = document.querySelector('#circular-input-start-demo');
+      const circularInputHiddenDemo = document.querySelector('#circular-input-hidden-demo');
+      const circularInputLog = document.querySelector('#circular-input-log');
 
       const sectorPalette = [
         {
@@ -1651,6 +1778,57 @@
             },
           ],
         };
+      }
+
+      if (circularInputDemo && circularInputLog) {
+        const circularInputSectors = [
+          { value: 24, radius: 108, height: 38, label: 'A' },
+          { value: 32, radius: 128, height: 54, label: 'B' },
+          { value: 18, radius: 94, height: 32, label: 'C' },
+          { value: 26, radius: 118, height: 46, label: 'D' },
+        ];
+        circularInputDemo.sectors = circularInputSectors;
+        if (circularInputStartDemo) {
+          circularInputStartDemo.sectors = circularInputSectors.map((sector) => ({ ...sector }));
+        }
+        if (circularInputHiddenDemo) {
+          circularInputHiddenDemo.sectors = circularInputSectors.map((sector) => ({ ...sector }));
+        }
+
+        const renderCircularInputLog = (label, detail) => {
+          const sectors = detail.sectors
+            .map((sector, index) => {
+              const name = sector.label || `S${index + 1}`;
+              return `${name}: v ${sector.value.toFixed(1)}, r ${sector.radius.toFixed(1)}, h ${sector.height.toFixed(1)}`;
+            })
+            .join('\n');
+
+          circularInputLog.textContent = `${label}
+index: ${detail.index}  field: ${detail.field}
+source: ${detail.source}
+gap: ${detail.gap.toFixed(1)}
+border radius: ${detail.borderRadius.toFixed(1)}
+start angle: ${detail.startAngle.toFixed(1)}
+${sectors}`;
+        };
+
+        const bindCircularInputLog = (element, name) => {
+          element.addEventListener('circular-input-change', (event) => {
+            renderCircularInputLog(`${name} circular-input-change`, event.detail);
+          });
+
+          element.addEventListener('circular-input-commit', (event) => {
+            renderCircularInputLog(`${name} circular-input-commit`, event.detail);
+          });
+        };
+
+        bindCircularInputLog(circularInputDemo, 'start anchor');
+        if (circularInputStartDemo) {
+          bindCircularInputLog(circularInputStartDemo, 'locked start anchor');
+        }
+        if (circularInputHiddenDemo) {
+          bindCircularInputLog(circularInputHiddenDemo, 'hidden controls');
+        }
       }
 
       customElements.whenDefined('transform-box').then(() => {
@@ -1965,6 +2143,10 @@ source: ${detail.source}`;
 
           element.addEventListener('anchor-point-input-commit', (event) => {
             renderAnchorLog(`${label} commit`, event.detail);
+          });
+
+          element.addEventListener('anchor-point-input-trigger', (event) => {
+            renderAnchorLog(`${label} trigger #${event.detail.triggerCount}`, event.detail);
           });
         });
       }

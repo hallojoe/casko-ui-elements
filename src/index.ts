@@ -27,6 +27,14 @@ export {
   CaskoUiCircularSectorLayerSvgElement,
 } from './elements/circular-sector-svg/circular-sector-layer-svg.element';
 export {
+  CaskoUiCircularInputElement,
+  type CircularInputChangeDetail,
+  type CircularInputChangeSource,
+  type CircularInputField,
+  type CircularInputSector,
+  type CircularInputValueHandleAnchor,
+} from './elements/circular-input.element';
+export {
   CaskoUiCircularSectorSvgElement,
   renderCircularSectorLayer,
   renderCircularSectorSvg,

@@ -22,6 +22,7 @@ Or import individual elements:
 import '@casko/ui-elements/selection-box';
 import '@casko/ui-elements/angle-input';
 import '@casko/ui-elements/anchor-point-input';
+import '@casko/ui-elements/circular-input';
 import '@casko/ui-elements/transform-box';
 import '@casko/ui-elements/drag-box';
 import '@casko/ui-elements/drag-scroll';
@@ -176,6 +177,8 @@ Track styling:
 - A dimmed dotted rectangle shows the anchor area and un-dims the selected handle.
 - Pointer clicks select a handle immediately.
 - Arrow keys move focus around the 3x3 grid; `Enter` and `Space` select the focused handle.
+- `hold-trigger` can emit repeat trigger events while holding Space or pointer on an anchor.
+- `handle-path` can replace the default dot with a custom SVG path.
 - `label` provides the accessible name and can be visible or title-only.
 
 ### Example
@@ -194,6 +197,13 @@ Track styling:
   label="Hidden disabled anchors"
   disabled-values='["block-center-inline-start","block-center-inline-end"]'
   hide-disabled-anchors></anchor-point-input>
+
+<anchor-point-input
+  label="Navigation pad"
+  hold-trigger
+  hold-trigger-mode="any"
+  handle-path="M 0 -5 L 4 4 L 0 2 L -4 4 Z"
+  rotate-handle></anchor-point-input>
 ```
 
 ### Public API
@@ -205,6 +215,10 @@ Attributes/properties:
 - `label-display`: `'visible' | 'title'`, default `'visible'`
 - `disabled-values`: disabled anchor values; accepts a JavaScript array, JSON array, or comma-separated values
 - `hide-disabled-anchors`: hides disabled anchors visually and removes them from keyboard navigation, default `false`
+- `hold-trigger`: emits repeated `anchor-point-input-trigger` events while an anchor is held, default `false`
+- `hold-trigger-mode`: `'selected' | 'any'`, default `'selected'`
+- `handle-path`: optional SVG path data for a custom handle centered on `0,0`; empty uses the default dot
+- `rotate-handle`: rotates a custom path handle to point outward from center, default `false`
 - `disabled`: disables pointer and keyboard changes
 
 Value names:
@@ -231,10 +245,98 @@ interface AnchorPointInputChangeDetail {
   inline: 'start' | 'center' | 'end';
   source: 'pointer' | 'keyboard';
 }
+
+interface AnchorPointInputTriggerDetail extends AnchorPointInputChangeDetail {
+  triggerCount: number;
+}
 ```
 
 - `anchor-point-input-change`
 - `anchor-point-input-commit`
+- `anchor-point-input-trigger`
+
+## `circular-input`
+
+`circular-input` is a POC editor for simplified circular sector values. It renders dotted sector arcs and exposes handles for editing each sector's value, radius, and height.
+
+### Example
+
+```html
+<circular-input id="sector-editor"></circular-input>
+
+<circular-input
+  id="sector-boundary-editor"
+  allow-crossing="false"
+  gap="8"
+  border-radius="8"
+  value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
+  gap-handle-path="M -5 -5 H 5 V 5 H -5 Z"
+  border-radius-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
+  start-angle-handle-path="M 0 -6 L 5 5 L 0 2 L -5 5 Z"></circular-input>
+
+<circular-input
+  gap="10"
+  border-radius="6"
+  hidden-controls="radius,height,gap"></circular-input>
+
+<script type="module">
+  const editor = document.querySelector('#sector-editor');
+
+  editor.sectors = [
+    { value: 24, radius: 108, height: 38, label: 'A' },
+    { value: 32, radius: 128, height: 54, label: 'B' },
+    { value: 18, radius: 94, height: 32, label: 'C' },
+    { value: 26, radius: 118, height: 46, label: 'D' },
+  ];
+
+  editor.addEventListener('circular-input-change', (event) => {
+    console.log(event.detail.sectors);
+  });
+</script>
+```
+
+Attributes/properties:
+
+- `sectors`: `CircularInputSector[]`, assigned as a property; each sector has `value`, `radius`, `height`, and optional `label`
+- `total-value`: total value used when value handles are dragged, default `100`
+- `start-angle`: start angle in degrees, default `-90`; also editable with the outer rotation handle
+- `value-handle-anchor`: `'start' | 'center' | 'end'`, default `'start'`; start/end anchors make value handles edit sector boundaries directly
+- `allow-crossing`: allows value handles to cross sibling positions, default `true`
+- `hidden-controls`: hides control types; accepts an array, JSON array, or comma-separated values from `'value' | 'radius' | 'height' | 'gap' | 'border-radius' | 'start-angle'`
+- `gap`: global sector gap passed to `@casko/circular-sector`, default `0`; edited by the outermost dotted bowed control unless hidden
+- `gap-step`: keyboard step for the global gap handle, default `1`
+- `gap-max`: maximum global gap value, default `48`
+- `border-radius`: global rounded-corner value passed to `@casko/circular-sector`, default `0`; edited by a dotted bowed control outside the rotation ring unless hidden
+- `border-radius-step`: keyboard step for the global border-radius handle, default `1`
+- `border-radius-max`: maximum global border-radius value, default `48`
+- `value-handle-path`, `radius-handle-path`, `height-handle-path`, `gap-handle-path`, `border-radius-handle-path`, `start-angle-handle-path`: optional SVG path data centered on `0,0`; empty uses the default circle for that handle type
+- `keyboard-step`: keyboard step for value handles, default `1`
+- `radius-step`: keyboard step for radius and height handles, default `5`
+- `disabled`: disables pointer and keyboard changes
+
+Events:
+
+```ts
+interface CircularInputSector {
+  value: number;
+  radius: number;
+  height: number;
+  label?: string;
+}
+
+interface CircularInputChangeDetail {
+  sectors: CircularInputSector[];
+  index: number;
+  field: 'value' | 'radius' | 'height' | 'gap' | 'border-radius' | 'start-angle';
+  source: 'pointer' | 'keyboard';
+  gap: number;
+  borderRadius: number;
+  startAngle: number;
+}
+```
+
+- `circular-input-change`
+- `circular-input-commit`
 
 ## `selection-box`
 
@@ -679,6 +781,23 @@ anchor-point-input {
   --anchor-point-input-disabled-handle-opacity: 0.22;
   --anchor-point-input-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.2);
 }
+
+circular-input {
+  --circular-input-size: 320px;
+  --circular-input-sector-stroke: rgba(15, 84, 73, 0.35);
+  --circular-input-line-stroke: rgba(15, 84, 73, 0.28);
+  --circular-input-handle-stroke-width: 2;
+  --circular-input-value-handle-fill: #0f5449;
+  --circular-input-value-handle-stroke-width: 2;
+  --circular-input-radius-handle-stroke: #0f5449;
+  --circular-input-radius-handle-stroke-width: 2;
+  --circular-input-height-handle-stroke: #d8682d;
+  --circular-input-height-handle-stroke-width: 2;
+  --circular-input-gap-handle-stroke-width: 2;
+  --circular-input-border-radius-handle-stroke-width: 2;
+  --circular-input-start-angle-handle-stroke-width: 2;
+  --circular-input-focus-ring-stroke-width: 3;
+}
 ```
 
 ## Demo
@@ -700,6 +819,7 @@ The demo includes:
 - partial readonly modes for text-only and number-only protection
 - standalone `selection-box`
 - standalone `anchor-point-input`
+- standalone `circular-input` POC
 - `multiple` mode with plain click toggle and modifier-based multi-select
 - drag-select enabled rectangle selection
 - standalone `drag-box`

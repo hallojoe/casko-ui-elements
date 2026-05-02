@@ -1,5 +1,6 @@
 import { CaskoUiAngleInputElement } from './elements/angle-input.element';
 import { CaskoUiAnchorPointInputElement } from './elements/anchor-point-input.element';
+import { CaskoUiCircularInputElement } from './elements/circular-input.element';
 import { CaskoUiCircularSectorLayerSvgElement } from './elements/circular-sector-svg/circular-sector-layer-svg.element';
 import { CaskoUiCircularSectorSvgElement } from './elements/circular-sector-svg/circular-sector-svg.element';
 import { CaskoUiDragBoxElement } from './elements/drag-box/drag-box.element';
@@ -15,6 +16,7 @@ import { CaskoUiTransformBoxElement } from './elements/transform-box.element';
 export function defineCaskoUiElements(): void {
   void CaskoUiAngleInputElement;
   void CaskoUiAnchorPointInputElement;
+  void CaskoUiCircularInputElement;
   void CaskoUiCircularSectorLayerSvgElement;
   void CaskoUiCircularSectorSvgElement;
   void CaskoUiDragBoxElement;

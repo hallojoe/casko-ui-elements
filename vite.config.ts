@@ -10,6 +10,7 @@ export default defineConfig({
         'define-all': resolve(__dirname, 'src/define-all.ts'),
         'elements/angle-input': resolve(__dirname, 'src/elements/angle-input.element.ts'),
         'elements/anchor-point-input': resolve(__dirname, 'src/elements/anchor-point-input.element.ts'),
+        'elements/circular-input': resolve(__dirname, 'src/elements/circular-input.element.ts'),
         'elements/circular-sector-layer-svg': resolve(__dirname, 'src/elements/circular-sector-svg/circular-sector-layer-svg.element.ts'),
         'elements/circular-sector-svg': resolve(__dirname, 'src/elements/circular-sector-svg/circular-sector-svg.element.ts'),
         'elements/drag-box': resolve(__dirname, 'src/elements/drag-box/drag-box.element.ts'),

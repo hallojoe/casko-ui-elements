@@ -5,6 +5,7 @@ export type AnchorPointBlock = 'start' | 'center' | 'end';
 export type AnchorPointInline = 'start' | 'center' | 'end';
 export type AnchorPointInputChangeSource = 'pointer' | 'keyboard';
 export type AnchorPointInputHandleShape = 'circle' | 'rect';
+export type AnchorPointInputHoldTriggerMode = 'selected' | 'any';
 export type AnchorPointInputLabelDisplay = 'visible' | 'title';
 export type AnchorPointValue =
   | 'block-start-inline-start'
@@ -24,6 +25,10 @@ export interface AnchorPointInputChangeDetail {
   source: AnchorPointInputChangeSource;
 }
 
+export interface AnchorPointInputTriggerDetail extends AnchorPointInputChangeDetail {
+  triggerCount: number;
+}
+
 interface AnchorPointOption {
   value: AnchorPointValue;
   block: AnchorPointBlock;
@@ -33,11 +38,21 @@ interface AnchorPointOption {
   label: string;
 }
 
+interface AnchorPointTriggerState {
+  value: AnchorPointValue;
+  source: AnchorPointInputChangeSource;
+  triggerCount: number;
+  delayId?: number;
+  intervalId?: number;
+}
+
 const VIEW_BOX_SIZE = 100;
 const GUIDE_START = 20;
 const GUIDE_CENTER = 50;
 const GUIDE_END = 80;
 const DEFAULT_VALUE: AnchorPointValue = 'block-center-inline-center';
+const HOLD_TRIGGER_DELAY = 400;
+const HOLD_TRIGGER_INTERVAL = 80;
 
 const BLOCK_VALUES: AnchorPointBlock[] = ['start', 'center', 'end'];
 const INLINE_VALUES: AnchorPointInline[] = ['start', 'center', 'end'];
@@ -98,6 +113,18 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
   @property({ type: String, attribute: 'handle-shape', reflect: true })
   handleShape: AnchorPointInputHandleShape = 'circle';
 
+  @property({ type: String, attribute: 'handle-path' })
+  handlePath = '';
+
+  @property({ type: Boolean, attribute: 'rotate-handle' })
+  rotateHandle = false;
+
+  @property({ type: Boolean, attribute: 'hold-trigger' })
+  holdTrigger = false;
+
+  @property({ type: String, attribute: 'hold-trigger-mode', reflect: true })
+  holdTriggerMode: AnchorPointInputHoldTriggerMode = 'selected';
+
   @property({
     attribute: 'disabled-values',
     converter: {
@@ -119,6 +146,8 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
   @queryAll('.anchor-button')
   private anchorButtons?: NodeListOf<HTMLButtonElement>;
 
+  private triggerState?: AnchorPointTriggerState;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.#normalizeCurrentValue();
@@ -136,6 +165,10 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
       this.#normalizeHandleShape();
     }
 
+    if (changedProperties.has('holdTriggerMode')) {
+      this.#normalizeHoldTriggerMode();
+    }
+
     if (changedProperties.has('disabledValues') || changedProperties.has('hideDisabledAnchors')) {
       this.#normalizeDisabledValues();
       if (this.#isDisabledValue(this.focusedValue)) {
@@ -145,7 +178,13 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
 
     if (changedProperties.has('disabled') && this.disabled) {
       this.focusedValue = this.value;
+      this.#stopHoldTrigger();
     }
+  }
+
+  disconnectedCallback(): void {
+    this.#stopHoldTrigger();
+    super.disconnectedCallback();
   }
 
   focus(options?: FocusOptions): void {
@@ -217,9 +256,30 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
           }
         }}
         @click=${() => this.#selectValue(option.value, 'pointer')}
-        @keydown=${this.#onKeyDown}>
-        <span class="anchor-dot" aria-hidden="true"></span>
+        @pointerdown=${(event: PointerEvent) => this.#onAnchorPointerDown(event, option.value)}
+        @pointerup=${this.#onAnchorPointerEnd}
+        @pointercancel=${this.#onAnchorPointerEnd}
+        @lostpointercapture=${this.#onAnchorPointerEnd}
+        @keydown=${this.#onKeyDown}
+        @keyup=${this.#onKeyUp}>
+        ${this.#renderAnchorHandle(option)}
       </button>
+    `;
+  }
+
+  #renderAnchorHandle(option: AnchorPointOption) {
+    const handlePath = this.handlePath.trim();
+    if (!handlePath) {
+      return html`<span class="anchor-dot" aria-hidden="true"></span>`;
+    }
+
+    const rotation = this.rotateHandle ? this.#getHandleRotation(option) : 0;
+    const transform = rotation === 0 ? 'translate(50 50)' : `translate(50 50) rotate(${rotation})`;
+
+    return html`
+      <svg class="anchor-path" viewBox="0 0 100 100" aria-hidden="true">
+        <path class="anchor-path-handle" d=${handlePath} transform=${transform}></path>
+      </svg>
     `;
   }
 
@@ -232,6 +292,9 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
 
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
+      if (event.key === ' ' && !event.repeat) {
+        this.#startHoldTrigger(currentValue, 'keyboard');
+      }
       this.#selectValue(currentValue, 'keyboard');
       return;
     }
@@ -244,6 +307,24 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
     const nextValue = this.#getKeyboardFocusValue(currentValue, event.key);
     this.focusedValue = nextValue;
     this.updateComplete.then(() => this.#focusButton(nextValue));
+  };
+
+  #onKeyUp = (event: KeyboardEvent) => {
+    if (event.key === ' ') {
+      this.#stopHoldTrigger();
+    }
+  };
+
+  #onAnchorPointerDown(event: PointerEvent, value: AnchorPointValue) {
+    if (this.disabled || this.#isDisabledValue(value)) return;
+
+    const button = event.currentTarget as HTMLButtonElement;
+    button.setPointerCapture(event.pointerId);
+    this.#startHoldTrigger(value, 'pointer');
+  }
+
+  #onAnchorPointerEnd = () => {
+    this.#stopHoldTrigger();
   };
 
   #selectValue(value: AnchorPointValue, source: AnchorPointInputChangeSource) {
@@ -289,7 +370,7 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
           : inlineIndex;
 
     const targetValue = ANCHOR_POINT_OPTIONS[nextBlockIndex * INLINE_VALUES.length + nextInlineIndex].value;
-    return this.#getNearestEnabledValue(targetValue, key, enabledOptions);
+    return this.#getNearestEnabledValueOnAxis(value, targetValue, key, enabledOptions);
   }
 
   #focusButton(value: AnchorPointValue, options?: FocusOptions) {
@@ -374,6 +455,100 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
     return enabledOptions[0].value;
   }
 
+  #getNearestEnabledValueOnAxis(
+    currentValue: AnchorPointValue,
+    targetValue: AnchorPointValue,
+    key: string,
+    enabledOptions: AnchorPointOption[],
+  ): AnchorPointValue {
+    if (!this.#isDisabledValue(targetValue)) {
+      return targetValue;
+    }
+
+    const currentOption = this.#getOption(currentValue);
+    const targetOption = this.#getOption(targetValue);
+    const enabledValues = new Set(enabledOptions.map((option) => option.value));
+
+    if (key === 'ArrowUp' || key === 'ArrowDown') {
+      const inlineIndex = INLINE_VALUES.indexOf(currentOption.inline);
+      const targetBlockIndex = BLOCK_VALUES.indexOf(targetOption.block);
+      const direction = key === 'ArrowUp' ? -1 : 1;
+      for (let blockIndex = targetBlockIndex; blockIndex >= 0 && blockIndex < BLOCK_VALUES.length; blockIndex += direction) {
+        const value = `block-${BLOCK_VALUES[blockIndex]}-inline-${INLINE_VALUES[inlineIndex]}` as AnchorPointValue;
+        if (enabledValues.has(value)) {
+          return value;
+        }
+      }
+    }
+
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      const blockIndex = BLOCK_VALUES.indexOf(currentOption.block);
+      const targetInlineIndex = INLINE_VALUES.indexOf(targetOption.inline);
+      const direction = key === 'ArrowLeft' ? -1 : 1;
+      for (
+        let inlineIndex = targetInlineIndex;
+        inlineIndex >= 0 && inlineIndex < INLINE_VALUES.length;
+        inlineIndex += direction
+      ) {
+        const value = `block-${BLOCK_VALUES[blockIndex]}-inline-${INLINE_VALUES[inlineIndex]}` as AnchorPointValue;
+        if (enabledValues.has(value)) {
+          return value;
+        }
+      }
+    }
+
+    return currentValue;
+  }
+
+  #startHoldTrigger(value: AnchorPointValue, source: AnchorPointInputChangeSource) {
+    if (!this.holdTrigger || this.disabled || this.#isDisabledValue(value) || !this.#canTriggerValue(value)) {
+      return;
+    }
+
+    this.#stopHoldTrigger();
+    this.triggerState = {
+      value,
+      source,
+      triggerCount: 0,
+    };
+
+    this.#emitTrigger();
+    this.triggerState.delayId = window.setTimeout(() => {
+      if (!this.triggerState) return;
+      this.#emitTrigger();
+      this.triggerState.intervalId = window.setInterval(() => this.#emitTrigger(), HOLD_TRIGGER_INTERVAL);
+    }, HOLD_TRIGGER_DELAY);
+  }
+
+  #stopHoldTrigger() {
+    if (!this.triggerState) return;
+
+    if (this.triggerState.delayId !== undefined) {
+      window.clearTimeout(this.triggerState.delayId);
+    }
+
+    if (this.triggerState.intervalId !== undefined) {
+      window.clearInterval(this.triggerState.intervalId);
+    }
+
+    this.triggerState = undefined;
+  }
+
+  #emitTrigger() {
+    if (!this.triggerState || this.disabled || this.#isDisabledValue(this.triggerState.value)) {
+      this.#stopHoldTrigger();
+      return;
+    }
+
+    this.triggerState.triggerCount += 1;
+    this.#emitEvent('anchor-point-input-trigger', this.#createTriggerDetail(this.triggerState));
+  }
+
+  #canTriggerValue(value: AnchorPointValue): boolean {
+    const mode = this.#getHoldTriggerMode();
+    return mode === 'any' || value === this.value;
+  }
+
   #createDetail(source: AnchorPointInputChangeSource): AnchorPointInputChangeDetail {
     const option = this.#getOption(this.value);
 
@@ -382,6 +557,18 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
       block: option.block,
       inline: option.inline,
       source,
+    };
+  }
+
+  #createTriggerDetail(state: AnchorPointTriggerState): AnchorPointInputTriggerDetail {
+    const option = this.#getOption(state.value);
+
+    return {
+      value: option.value,
+      block: option.block,
+      inline: option.inline,
+      source: state.source,
+      triggerCount: state.triggerCount,
     };
   }
 
@@ -408,6 +595,27 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
 
   #getHandleShape(): AnchorPointInputHandleShape {
     return this.handleShape === 'rect' ? 'rect' : 'circle';
+  }
+
+  #normalizeHoldTriggerMode() {
+    const normalizedMode = this.#getHoldTriggerMode();
+    if (normalizedMode !== this.holdTriggerMode) {
+      this.holdTriggerMode = normalizedMode;
+    }
+  }
+
+  #getHoldTriggerMode(): AnchorPointInputHoldTriggerMode {
+    return this.holdTriggerMode === 'any' ? 'any' : 'selected';
+  }
+
+  #getHandleRotation(option: AnchorPointOption): number {
+    const vectorX = option.inline === 'start' ? -1 : option.inline === 'end' ? 1 : 0;
+    const vectorY = option.block === 'start' ? -1 : option.block === 'end' ? 1 : 0;
+    if (vectorX === 0 && vectorY === 0) {
+      return 0;
+    }
+
+    return (Math.atan2(vectorY, vectorX) * 180) / Math.PI + 90;
   }
 
   static styles = css`
@@ -522,9 +730,35 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
         transform 140ms ease;
     }
 
+    .anchor-path {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .anchor-path-handle {
+      fill: var(--anchor-point-input-handle-fill);
+      stroke: var(--anchor-point-input-handle-stroke);
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+      transition:
+        fill 140ms ease,
+        stroke 140ms ease,
+        opacity 140ms ease,
+        transform 140ms ease;
+    }
+
     .anchor-button:hover .anchor-dot,
     .anchor-button:focus-visible .anchor-dot,
     .anchor-button[aria-checked='true'] .anchor-dot {
+      opacity: 1;
+    }
+
+    .anchor-button:hover .anchor-path-handle,
+    .anchor-button:focus-visible .anchor-path-handle,
+    .anchor-button[aria-checked='true'] .anchor-path-handle {
       opacity: 1;
     }
 
@@ -532,6 +766,11 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
       border-color: var(--anchor-point-input-active-handle-stroke);
       background: var(--anchor-point-input-active-handle-fill);
       transform: scale(1.1);
+    }
+
+    .anchor-button[aria-checked='true'] .anchor-path-handle {
+      fill: var(--anchor-point-input-active-handle-fill);
+      stroke: var(--anchor-point-input-active-handle-stroke);
     }
 
     .anchor-button.anchor-disabled {
@@ -546,6 +785,15 @@ export class CaskoUiAnchorPointInputElement extends LitElement {
       background: var(--anchor-point-input-disabled-handle-fill);
       opacity: var(--anchor-point-input-disabled-handle-opacity);
       transform: none;
+    }
+
+    .anchor-button.anchor-disabled .anchor-path-handle,
+    .anchor-button.anchor-disabled:hover .anchor-path-handle,
+    .anchor-button.anchor-disabled:focus-visible .anchor-path-handle,
+    .anchor-button.anchor-disabled[aria-checked='true'] .anchor-path-handle {
+      fill: var(--anchor-point-input-disabled-handle-fill);
+      stroke: var(--anchor-point-input-disabled-handle-stroke);
+      opacity: var(--anchor-point-input-disabled-handle-opacity);
     }
 
     .disabled {

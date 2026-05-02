@@ -9,6 +9,7 @@
     "./dist/define-all.js",
     "./dist/elements/angle-input.js",
     "./dist/elements/anchor-point-input.js",
+    "./dist/elements/circular-input.js",
     "./dist/elements/circular-sector-layer-svg.js",
     "./dist/elements/circular-sector-svg.js",
     "./dist/elements/drag-box.js",
@@ -33,6 +34,10 @@
     "./anchor-point-input": {
       "types": "./dist/elements/anchor-point-input.element.d.ts",
       "import": "./dist/elements/anchor-point-input.js"
+    },
+    "./circular-input": {
+      "types": "./dist/elements/circular-input.element.d.ts",
+      "import": "./dist/elements/circular-input.js"
     },
     "./circular-sector-layer-svg": {
       "types": "./dist/elements/circular-sector-layer-svg.element.d.ts",

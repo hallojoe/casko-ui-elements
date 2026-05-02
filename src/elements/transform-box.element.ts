@@ -62,6 +62,18 @@ const HANDLE_DIRECTIONS: Record<ResizeHandleName, { x: -1 | 0 | 1; y: -1 | 0 | 1
 const CORNER_HANDLES: Array<ResizeHandleName> = ['nw', 'ne', 'se', 'sw'];
 const SIDE_HANDLES: Array<ResizeHandleName> = ['n', 'e', 's', 'w'];
 
+function isSnapStepEnabled(snapStep: number): boolean {
+  return Number.isFinite(snapStep) && snapStep > 0;
+}
+
+function snapNumber(value: number, snapStep: number): number {
+  return Math.round(value / snapStep) * snapStep;
+}
+
+function isUnrotated(rotation: number): boolean {
+  return rotation % 360 === 0;
+}
+
 function degreesToRadians(value: number): number {
   return (value * Math.PI) / 180;
 }
@@ -163,6 +175,9 @@ export class CaskoUiTransformBoxElement extends LitElement {
   @property({ type: Number, attribute: 'keyboard-step' })
   keyboardStep = 1;
 
+  @property({ type: Number, attribute: 'snap-step' })
+  snapStep = 0;
+
   @property({ type: Number, attribute: 'min-width' })
   minWidth = 24;
 
@@ -215,6 +230,7 @@ export class CaskoUiTransformBoxElement extends LitElement {
           ?disabled=${this.disabled || !this.movable}
           .clampToBounds=${false}
           .moveRequiresSelection=${this.moveRequiresSelection}
+          .snapStep=${this.snapStep}
           @pointerdown=${this.#onMovePointerDown}
           @drag-box-change=${this.#onDragChange}
           @drag-box-commit=${this.#onDragCommit}>
@@ -554,6 +570,13 @@ export class CaskoUiTransformBoxElement extends LitElement {
       }
     }
 
+    ({ left, right, top, bottom } = this.#snapResizeEdges(
+      interaction.startGeometry,
+      direction,
+      localDelta,
+      { left, right, top, bottom },
+    ));
+
     const nextWidth = right - left;
     const nextHeight = bottom - top;
     const centerOffsetLocal = {
@@ -574,6 +597,161 @@ export class CaskoUiTransformBoxElement extends LitElement {
       height: nextHeight,
       rotation: interaction.startGeometry.rotation,
     };
+  }
+
+  #snapResizeEdges(
+    startGeometry: ITransformBoxGeometry,
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    localDelta: DragPoint,
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    if (!isSnapStepEnabled(this.snapStep) || (direction.x === 0 && direction.y === 0)) {
+      return edges;
+    }
+
+    if (this.keepProportionsOnResize) {
+      return this.#snapProportionalResizeEdges(startGeometry, direction, localDelta, edges);
+    }
+
+    if (isUnrotated(startGeometry.rotation)) {
+      return this.#snapUnrotatedResizeEdges(startGeometry, direction, edges);
+    }
+
+    return this.#snapLocalResizeEdges(direction, edges);
+  }
+
+  #snapUnrotatedResizeEdges(
+    startGeometry: ITransformBoxGeometry,
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    const startCenter = getBoxCenter(startGeometry);
+    let { left, right, top, bottom } = edges;
+
+    if (direction.x === -1) {
+      left = snapNumber(startCenter.x + left, this.snapStep) - startCenter.x;
+    } else if (direction.x === 1) {
+      right = snapNumber(startCenter.x + right, this.snapStep) - startCenter.x;
+    }
+
+    if (direction.y === -1) {
+      top = snapNumber(startCenter.y + top, this.snapStep) - startCenter.y;
+    } else if (direction.y === 1) {
+      bottom = snapNumber(startCenter.y + bottom, this.snapStep) - startCenter.y;
+    }
+
+    return this.#enforceResizeMinSize(direction, { left, right, top, bottom });
+  }
+
+  #snapLocalResizeEdges(
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    let { left, right, top, bottom } = edges;
+
+    if (direction.x !== 0) {
+      const width = Math.max(this.minWidth, snapNumber(right - left, this.snapStep));
+
+      if (direction.x === -1) {
+        left = right - width;
+      } else {
+        right = left + width;
+      }
+    }
+
+    if (direction.y !== 0) {
+      const height = Math.max(this.minHeight, snapNumber(bottom - top, this.snapStep));
+
+      if (direction.y === -1) {
+        top = bottom - height;
+      } else {
+        bottom = top + height;
+      }
+    }
+
+    return this.#enforceResizeMinSize(direction, { left, right, top, bottom });
+  }
+
+  #snapProportionalResizeEdges(
+    startGeometry: ITransformBoxGeometry,
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    localDelta: DragPoint,
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    const aspectRatio = startGeometry.width / startGeometry.height || 1;
+    const minWidth = Math.max(this.minWidth, this.minHeight * aspectRatio);
+    const minHeight = minWidth / aspectRatio;
+    const widthDeltaRatio =
+      direction.x !== 0 ? Math.abs((direction.x * localDelta.x) / startGeometry.width) : 0;
+    const heightDeltaRatio =
+      direction.y !== 0 ? Math.abs((direction.y * localDelta.y) / startGeometry.height) : 0;
+    const snapWidth = direction.x !== 0 && (direction.y === 0 || widthDeltaRatio >= heightDeltaRatio);
+    let nextWidth = edges.right - edges.left;
+    let nextHeight = edges.bottom - edges.top;
+
+    if (snapWidth) {
+      nextWidth = Math.max(minWidth, snapNumber(nextWidth, this.snapStep));
+      nextHeight = nextWidth / aspectRatio;
+    } else {
+      nextHeight = Math.max(minHeight, snapNumber(nextHeight, this.snapStep));
+      nextWidth = nextHeight * aspectRatio;
+    }
+
+    return this.#getResizeEdgesFromSize(direction, nextWidth, nextHeight, edges);
+  }
+
+  #getResizeEdgesFromSize(
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    width: number,
+    height: number,
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    let { left, right, top, bottom } = edges;
+
+    if (direction.x === -1) {
+      left = right - width;
+    } else if (direction.x === 1) {
+      right = left + width;
+    } else {
+      left = -width / 2;
+      right = width / 2;
+    }
+
+    if (direction.y === -1) {
+      top = bottom - height;
+    } else if (direction.y === 1) {
+      bottom = top + height;
+    } else {
+      top = -height / 2;
+      bottom = height / 2;
+    }
+
+    return { left, right, top, bottom };
+  }
+
+  #enforceResizeMinSize(
+    direction: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
+    edges: { left: number; right: number; top: number; bottom: number },
+  ) {
+    let { left, right, top, bottom } = edges;
+
+    if (right - left < this.minWidth) {
+      if (direction.x === -1) {
+        left = right - this.minWidth;
+      } else if (direction.x === 1) {
+        right = left + this.minWidth;
+      }
+    }
+
+    if (bottom - top < this.minHeight) {
+      if (direction.y === -1) {
+        top = bottom - this.minHeight;
+      } else if (direction.y === 1) {
+        bottom = top + this.minHeight;
+      }
+    }
+
+    return { left, right, top, bottom };
   }
 
   #getProportionalResizeEdges(

@@ -7,6 +7,8 @@
   "sideEffects": [
     "./dist/index.js",
     "./dist/define-all.js",
+    "./dist/elements/angle-input.js",
+    "./dist/elements/anchor-point-input.js",
     "./dist/elements/circular-sector-layer-svg.js",
     "./dist/elements/circular-sector-svg.js",
     "./dist/elements/drag-box.js",
@@ -23,6 +25,14 @@
     "./define-all": {
       "types": "./dist/define-all.d.ts",
       "import": "./dist/define-all.js"
+    },
+    "./angle-input": {
+      "types": "./dist/elements/angle-input.element.d.ts",
+      "import": "./dist/elements/angle-input.js"
+    },
+    "./anchor-point-input": {
+      "types": "./dist/elements/anchor-point-input.element.d.ts",
+      "import": "./dist/elements/anchor-point-input.js"
     },
     "./circular-sector-layer-svg": {
       "types": "./dist/elements/circular-sector-layer-svg.element.d.ts",

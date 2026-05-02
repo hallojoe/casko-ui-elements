@@ -53,3 +53,14 @@ export function clampDraggedPosition(
     y: Math.min(Math.max(0, position.y), Math.max(0, bounds.height - size.height)),
   };
 }
+
+export function snapDraggedPosition(position: DragPosition, snapStep: number): DragPosition {
+  if (!Number.isFinite(snapStep) || snapStep <= 0) {
+    return position;
+  }
+
+  return {
+    x: Math.round(position.x / snapStep) * snapStep,
+    y: Math.round(position.y / snapStep) * snapStep,
+  };
+}

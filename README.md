@@ -20,12 +20,221 @@ Or import individual elements:
 
 ```ts
 import '@casko/ui-elements/selection-box';
+import '@casko/ui-elements/angle-input';
+import '@casko/ui-elements/anchor-point-input';
 import '@casko/ui-elements/transform-box';
 import '@casko/ui-elements/drag-box';
 import '@casko/ui-elements/drag-scroll';
 import '@casko/ui-elements/number-aware-input';
 import '@casko/ui-elements/token-aware-input';
 ```
+
+## `angle-input`
+
+`angle-input` edits a numeric angle, turn ratio, or distributed number by dragging a handle around a circular path.
+
+### Features
+
+- `value` is numeric and wraps around a full circle by default for angles.
+- `unit="degrees|radians|ratio|number"` controls the public value unit.
+- `min` and `max` clamp the value to a partial range; ratio mode defaults to `0..1`, and number mode defaults to `0..distribution`.
+- `distribution` controls the full-turn denominator in number mode; the default is `100`.
+- `show-value-text` displays the current formatted value over the dial.
+- `show-step-value-text` and `show-step-ticks` can display visual step markers around the dial.
+- `direction="clockwise|counterclockwise"` controls visual direction.
+- `start-angle` controls where value `0` appears on full circles and where the first range value appears on partial arcs.
+- `arc-degrees` can render partial arcs such as `180` for a semicircle.
+- Pointer dragging emits `angle-input-change` and commits on pointer release.
+- Arrow keys adjust the value; `PageUp` and `PageDown` move by `10` steps, `Home` and `End` jump to bounds, `Shift` multiplies the step by `10`, and `Alt` divides it by `10`.
+- `label` provides the accessible name and can be visible or title-only.
+
+### Example
+
+```html
+<angle-input
+  label="Rotation"
+  value="45"
+  unit="degrees"
+  direction="clockwise"
+  snap-step="15"></angle-input>
+
+<angle-input
+  label="Opacity turn"
+  unit="ratio"
+  value="0.25"
+  step="0.05"
+  snap-step="0.05"></angle-input>
+
+<angle-input
+  label="Progress"
+  unit="number"
+  value="40"
+  distribution="100"
+  step="5"
+  snap-step="5"></angle-input>
+
+<angle-input
+  label="Volume steps"
+  unit="number"
+  value="3"
+  distribution="10"
+  data-list="[1,2,3,5,10]"
+  data-list-mode="absolute"
+  show-step-ticks
+  show-step-value-text
+  step-value-text-offset="8"></angle-input>
+
+<angle-input
+  label="Visible value"
+  value="75"
+  show-value-text
+  display-unit="deg"
+  value-text-offset="4"
+  value-text-anchor="block-center-inline-end"></angle-input>
+
+<angle-input
+  label="Custom handle"
+  value="45"
+  handle-offset="8"
+  handle-path="M 0 -7 L 6 6 L 0 3 L -6 6 Z"
+  rotate-handle></angle-input>
+
+<angle-input
+  label="Semicircle"
+  unit="number"
+  value="50"
+  min="0"
+  max="100"
+  arc-degrees="180"
+  start-angle="180"></angle-input>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `value`: current angle, turn ratio, or distributed number in the selected unit
+- `unit`: `'degrees' | 'radians' | 'ratio' | 'number'`, default `'degrees'`
+- `distribution`: full-turn denominator for number mode, default `100`
+- `min` / `max`: optional numeric clamps in the selected unit; defaults are `0..360`, `0..Math.PI * 2`, `0..1`, or `0..distribution`
+- `data-list`: optional numeric values in the selected unit; accepts a JavaScript array, JSON array, or comma-separated numbers, and overrides `min` / `max` with the first and last valid list values
+- `data-list-mode`: `'sliding' | 'absolute'`, default `'sliding'`; `sliding` keeps normal numeric stepping inside the list range, while `absolute` snaps pointer input and keyboard navigation to list entries
+- `show-value-text`: displays visible value text over the dial, default `false`
+- `value-text`: optional visible text override; empty string uses the formatted current value
+- `value-text-anchor`: value text anchor point, default `'block-center-inline-center'`
+- `value-text-offset`: numeric outward offset from the value text anchor point, default `0`; does not affect center-center
+- `show-step-value-text`: displays visual labels for step markers, default `false`
+- `show-step-ticks`: displays visual radial ticks for step markers, default `false`
+- `step-value-text-offset`: shared radial offset for all step labels, default `0`; labels align automatically from their angle so text grows away from the dial
+- `hide-constrained-track`: when clamped or bounded, renders only the usable track arc, default `false`
+- `display-unit`: optional visible unit text appended or prepended to visible value text, default `''`
+- `display-unit-position`: `'before' | 'after'`, default `'after'`
+- `hide-angle-line`: hides the line from the center to the handle, default `false`
+- `hide-center-point`: hides the center point marker, default `false`
+- `handle-path`: optional SVG path data for a custom handle centered on `0,0`; empty uses the default circular handle
+- `handle-offset`: numeric radial offset for the handle, default `0`; positive values move it outward and negative values move it inward
+- `rotate-handle`: rotates a custom path handle so an upward-pointing path points outward from the dial center, default `false`
+- `direction`: `'clockwise' | 'counterclockwise'`, default `'clockwise'`
+- `start-angle`: visual start angle in degrees, default `-90`; partial arcs map the effective range minimum to this angle
+- `arc-degrees`: visual arc length in degrees, default `360`; set `180` for a semicircle, invalid or non-positive values fall back to `360`
+- `step`: keyboard step in the selected unit; defaults to `1` degree, `Math.PI / 180` radians, `1 / 360` ratio, or `1` number unit
+- `snap-step`: pointer drag snap amount in the selected unit; values less than or equal to `0` disable snapping
+- `label`: accessible label text
+- `label-display`: `'visible' | 'title'`, default `'visible'`
+- `disabled`: disables pointer and keyboard changes
+
+Events:
+
+```ts
+interface AngleInputChangeDetail {
+  value: number;
+  degrees: number;
+  radians: number;
+  distribution: number;
+  unit: 'degrees' | 'radians' | 'ratio' | 'number';
+  direction: 'clockwise' | 'counterclockwise';
+  source: 'pointer' | 'keyboard';
+}
+```
+
+- `angle-input-change`
+- `angle-input-commit`
+
+Track styling:
+
+- `--angle-input-track-stroke` controls the background track color.
+- `--angle-input-track-stroke-width` controls only the background track thickness; it does not make the track visible if the stroke color is transparent, invalid, or overridden.
+- The value arc is rendered after the background track and covers the active portion.
+
+## `anchor-point-input`
+
+`anchor-point-input` selects one of 9 CSS-logical anchor points from a compact SVG grid.
+
+### Features
+
+- `value` uses block/inline logical names such as `block-start-inline-start`.
+- A dimmed dotted rectangle shows the anchor area and un-dims the selected handle.
+- Pointer clicks select a handle immediately.
+- Arrow keys move focus around the 3x3 grid; `Enter` and `Space` select the focused handle.
+- `label` provides the accessible name and can be visible or title-only.
+
+### Example
+
+```html
+<anchor-point-input
+  label="Transform origin"
+  value="block-center-inline-center"></anchor-point-input>
+
+<anchor-point-input
+  label="Available anchors"
+  value="block-center-inline-center"
+  disabled-values="block-start-inline-start,block-end-inline-end"></anchor-point-input>
+
+<anchor-point-input
+  label="Hidden disabled anchors"
+  disabled-values='["block-center-inline-start","block-center-inline-end"]'
+  hide-disabled-anchors></anchor-point-input>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `value`: selected anchor point, default `'block-center-inline-center'`
+- `label`: accessible label text
+- `label-display`: `'visible' | 'title'`, default `'visible'`
+- `disabled-values`: disabled anchor values; accepts a JavaScript array, JSON array, or comma-separated values
+- `hide-disabled-anchors`: hides disabled anchors visually and removes them from keyboard navigation, default `false`
+- `disabled`: disables pointer and keyboard changes
+
+Value names:
+
+```ts
+type AnchorPointValue =
+  | 'block-start-inline-start'
+  | 'block-start-inline-center'
+  | 'block-start-inline-end'
+  | 'block-center-inline-start'
+  | 'block-center-inline-center'
+  | 'block-center-inline-end'
+  | 'block-end-inline-start'
+  | 'block-end-inline-center'
+  | 'block-end-inline-end';
+```
+
+Events:
+
+```ts
+interface AnchorPointInputChangeDetail {
+  value: AnchorPointValue;
+  block: 'start' | 'center' | 'end';
+  inline: 'start' | 'center' | 'end';
+  source: 'pointer' | 'keyboard';
+}
+```
+
+- `anchor-point-input-change`
+- `anchor-point-input-commit`
 
 ## `selection-box`
 
@@ -42,6 +251,7 @@ import '@casko/ui-elements/token-aware-input';
 - `deselect-on-outside-click` clears selection when clicking empty wrapper space.
 - Selection is finalized from pointer interactions, so drag gestures do not accidentally toggle selection.
 - Drag-select measures each child's visible selection bounds instead of assuming the host rectangle.
+- Optional layer ordering can move selected direct children to the front or back of DOM paint order.
 - The element emits bubbled, composed `selection-box-change` and `selection-box-commit` events.
 
 ### Example
@@ -66,9 +276,12 @@ Attributes/properties:
 - `multi-select-key`: `'none' | 'shift' | 'ctrl'`, default `'none'`
 - `drag-select`: enables rectangle selection from empty space
 - `deselect-on-outside-click`: clears selection when clicking empty wrapper space
+- `double-click-bring-to-front`: double-clicking a selected item moves the selected group to the front
 - `disabled`: disables selection changes
 - `value-attr`: attribute name used for event payload values, default `'value'`
 - `selectedValues`: read-only property returning selected child values
+- `bringSelectedToFront()`: moves selected direct children to the end of DOM order
+- `sendSelectedToBack()`: moves selected direct children to the start of DOM order
 
 Selection state:
 
@@ -91,6 +304,13 @@ Drag behavior:
 - Dragging a selectable item does not trigger rectangle selection.
 - `deselect-on-outside-click` clears the current selection from empty-space clicks.
 - For shadow-DOM children, drag-select first checks `getSelectionBoundsRect()`, then `getSelectionBoundsElement()`, then `[data-selection-bounds]`, and finally falls back to the host bounds.
+
+Layer behavior:
+
+- Layer order follows DOM order of selectable direct children.
+- Front/back methods move selected items as a group and preserve their relative order.
+- Ignored children are not selected or included in order event item lists.
+- Order changes emit separate order events; selection events remain selection-only.
 
 Keyboard behavior:
 
@@ -115,7 +335,20 @@ interface SelectionBoxChangeDetail {
   mode: 'single' | 'multiple';
   source: 'click' | 'drag' | 'keyboard';
 }
+
+interface SelectionBoxOrderChangeDetail {
+  items: SelectionBoxItemDetail[];
+  selectedItems: SelectionBoxItemDetail[];
+  movedItems: SelectionBoxItemDetail[];
+  direction: 'front' | 'back';
+  source: 'method' | 'double-click';
+}
 ```
+
+- `selection-box-change`
+- `selection-box-commit`
+- `selection-box-order-change`
+- `selection-box-order-commit`
 
 ## `number-aware-input`
 
@@ -327,6 +560,14 @@ Use `move-requires-selection` when an outer selection manager should decide whet
 - This is especially useful with `selection-controlled` inside `selection-box`, where the first click should select and a later drag should move.
 - In `transform-box`, this gate follows the `selected` state on the transform box itself, so wrapper-managed selection works without extra wiring.
 
+#### `snap-step`
+
+Use `snap-step` to snap move and resize dragging to a grid from the stage origin.
+
+- Default: `0`
+- Values less than or equal to `0` disable snapping.
+- Snapping only affects pointer move and resize dragging, not rotate or other movement.
+
 #### `showControlsWhenUnselected`
 
 `showControlsWhenUnselected` controls whether the outline and handles stay visible while the box is not selected.
@@ -364,6 +605,15 @@ Use `move-requires-selection` when `drag-box` participates in a larger selection
 - This lets wrappers such as `selection-box` own the first click without the item sliding away.
 - Set `selected` on the `drag-box` when some outer element owns selection state.
 
+#### `snap-step`
+
+Use `snap-step` to snap dragged positions to the nearest multiple of a grid step from the host origin.
+
+- Default: `0`
+- Values less than or equal to `0` disable snapping.
+- Snapped positions are still clamped to bounds when `clamp-to-bounds` is enabled.
+- `transform-box` exposes the same attribute and passes it through to its internal `drag-box` for move dragging.
+
 `drag-box` also exposes its visible box as the selection bounds target, so `selection-box` drag-select can measure the real draggable rectangle instead of the full host.
 
 ## Styling
@@ -391,6 +641,44 @@ transform-box {
   --transform-box-outline-color: rgba(216, 104, 45, 0.78);
   --transform-box-background: rgba(216, 104, 45, 0.08);
 }
+
+angle-input {
+  --angle-input-size: 160px;
+  --angle-input-track-stroke: rgba(15, 84, 73, 0.22);
+  --angle-input-value-stroke: #0f5449;
+  --angle-input-handle-fill: #fff;
+  --angle-input-handle-stroke: #0f5449;
+  --angle-input-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  --angle-input-value-text-color: #17322d;
+  --angle-input-value-text-font: 600 0.8rem/1.2 "Segoe UI", sans-serif;
+  --angle-input-value-text-background: transparent;
+  --angle-input-value-text-padding: 0;
+  --angle-input-value-text-radius: 4px;
+  --angle-input-value-text-offset-x: 0px;
+  --angle-input-value-text-offset-y: 0px;
+  --angle-input-step-tick-length: 6;
+  --angle-input-step-tick-stroke: rgba(15, 84, 73, 0.7);
+  --angle-input-step-tick-stroke-width: 1.5;
+  --angle-input-step-tick-opacity: 1;
+  --angle-input-step-value-text-color: #17322d;
+  --angle-input-step-value-text-font: 600 0.65rem/1.2 "Segoe UI", sans-serif;
+  --angle-input-step-value-text-background: transparent;
+  --angle-input-step-value-text-padding: 0;
+  --angle-input-step-value-text-radius: 4px;
+  --angle-input-step-value-text-offset-x: 0px;
+  --angle-input-step-value-text-offset-y: 0px;
+}
+
+anchor-point-input {
+  --anchor-point-input-size: 120px;
+  --anchor-point-input-guide-stroke: rgba(15, 84, 73, 0.3);
+  --anchor-point-input-handle-fill: rgba(15, 84, 73, 0.18);
+  --anchor-point-input-active-handle-fill: #0f5449;
+  --anchor-point-input-disabled-handle-fill: rgba(15, 84, 73, 0.12);
+  --anchor-point-input-disabled-handle-stroke: rgba(15, 84, 73, 0.28);
+  --anchor-point-input-disabled-handle-opacity: 0.22;
+  --anchor-point-input-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
 ```
 
 ## Demo
@@ -411,8 +699,9 @@ The demo includes:
 - pair-locked numeric stepping
 - partial readonly modes for text-only and number-only protection
 - standalone `selection-box`
+- standalone `anchor-point-input`
 - `multiple` mode with plain click toggle and modifier-based multi-select
 - drag-select enabled rectangle selection
 - standalone `drag-box`
 - standalone `transform-box`
-- a combined stage where `selection-box`, `drag-box`, and `transform-box` work together with selection-first movement
+- a combined stage where `selection-box`, `drag-box`, and `transform-box` work together with selection-first movement and layer ordering

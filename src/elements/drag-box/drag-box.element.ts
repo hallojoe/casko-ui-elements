@@ -4,6 +4,7 @@ import {
   clampDraggedPosition,
   getDraggedPosition,
   getLocalPoint,
+  snapDraggedPosition,
   type DragInteraction,
 } from './drag-box.controller';
 
@@ -34,6 +35,9 @@ export class CaskoUiDragBoxElement extends LitElement {
 
   @property({ type: Boolean, attribute: 'move-requires-selection', reflect: true })
   moveRequiresSelection = false;
+
+  @property({ type: Number, attribute: 'snap-step', reflect: true })
+  snapStep = 0;
 
   @query('.box')
   private boxElement?: HTMLDivElement;
@@ -101,21 +105,23 @@ export class CaskoUiDragBoxElement extends LitElement {
   }
 
   #normalizePosition(position: { x: number; y: number }) {
-    if (!this.clampToBounds) {
-      return {
+    const snappedPosition = snapDraggedPosition(
+      {
         x: Number.isFinite(position.x) ? position.x : 0,
         y: Number.isFinite(position.y) ? position.y : 0,
-      };
+      },
+      this.snapStep,
+    );
+
+    if (!this.clampToBounds) {
+      return snappedPosition;
     }
 
     const bounds = this.getBoundingClientRect();
     const box = this.boxElement?.getBoundingClientRect();
 
     return clampDraggedPosition(
-      {
-        x: Number.isFinite(position.x) ? position.x : 0,
-        y: Number.isFinite(position.y) ? position.y : 0,
-      },
+      snappedPosition,
       {
         width: box?.width ?? 0,
         height: box?.height ?? 0,

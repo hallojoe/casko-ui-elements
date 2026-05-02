@@ -5,9 +5,11 @@ export type SelectionBoxMode = 'single' | 'multiple';
 export type SelectionBoxLegacyMode = SelectionBoxMode | 'multi';
 export type SelectionBoxMultiSelectKey = 'none' | 'shift' | 'ctrl';
 export type SelectionBoxChangeSource = 'click' | 'drag' | 'keyboard';
+export type SelectionBoxOrderDirection = 'front' | 'back';
+export type SelectionBoxOrderSource = 'method' | 'double-click';
 
 export interface SelectionBoxItemDetail {
-  element: HTMLElement;
+  element: Element;
   value: string | null;
   selected: boolean;
 }
@@ -18,6 +20,14 @@ export interface SelectionBoxChangeDetail {
   changedItems: SelectionBoxItemDetail[];
   mode: SelectionBoxMode;
   source: SelectionBoxChangeSource;
+}
+
+export interface SelectionBoxOrderChangeDetail {
+  items: SelectionBoxItemDetail[];
+  selectedItems: SelectionBoxItemDetail[];
+  movedItems: SelectionBoxItemDetail[];
+  direction: SelectionBoxOrderDirection;
+  source: SelectionBoxOrderSource;
 }
 
 interface SelectionBoxRect {
@@ -41,7 +51,7 @@ interface SelectionBoundsProvider {
 
 interface SelectionBoxInteraction {
   pointerId: number;
-  target?: HTMLElement;
+  target?: Element;
   startedOnEmptySpace: boolean;
   startClientX: number;
   startClientY: number;
@@ -51,7 +61,15 @@ interface SelectionBoxInteraction {
   dragRect?: SelectionBoxRect;
 }
 
+interface SelectionBoxPointerSelectionSnapshot {
+  target: Element;
+  selectedElements: Element[];
+  targetWasSelected: boolean;
+  timestamp: number;
+}
+
 const POINTER_MOVE_TOLERANCE = 4;
+const DOUBLE_CLICK_SNAPSHOT_TIMEOUT = 500;
 
 @customElement('selection-box')
 export class CaskoUiSelectionBoxElement extends LitElement {
@@ -70,15 +88,19 @@ export class CaskoUiSelectionBoxElement extends LitElement {
   @property({ type: Boolean, attribute: 'deselect-on-outside-click', reflect: true })
   deselectOnOutsideClick = false;
 
+  @property({ type: Boolean, attribute: 'double-click-bring-to-front', reflect: true })
+  doubleClickBringToFront = false;
+
   @property({ type: String, attribute: 'value-attr' })
   valueAttr = 'value';
 
   @queryAssignedElements({ flatten: true })
-  private assignedElements!: HTMLElement[];
+  private assignedElements!: Element[];
 
   private interaction?: SelectionBoxInteraction;
-  private previewElements = new Set<HTMLElement>();
-  private focusedElement?: HTMLElement;
+  private previewElements = new Set<Element>();
+  private focusedElement?: Element;
+  private pointerSelectionSnapshot?: SelectionBoxPointerSelectionSnapshot;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -95,6 +117,14 @@ export class CaskoUiSelectionBoxElement extends LitElement {
       .filter((value): value is string => value !== null);
   }
 
+  bringSelectedToFront(): void {
+    this.#orderSelectedElements('front', 'method');
+  }
+
+  sendSelectedToBack(): void {
+    this.#orderSelectedElements('back', 'method');
+  }
+
   protected render() {
     return html`
       <div
@@ -107,7 +137,8 @@ export class CaskoUiSelectionBoxElement extends LitElement {
         @pointercancel=${this.#onPointerCancel}
         @focusin=${this.#onFocusIn}
         @focusout=${this.#onFocusOut}
-        @keydown=${this.#onKeyDown}>
+        @keydown=${this.#onKeyDown}
+        @dblclick=${this.#onDoubleClick}>
         <slot @slotchange=${this.#onSlotChange}></slot>
       </div>
       ${this.#renderDragOverlay()}
@@ -139,6 +170,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     const target = this.#getSelectableTargetFromComposedPath(event.composedPath());
     const localPoint = this.#getLocalPoint(event);
     const captureElement = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+    this.#capturePointerSelectionSnapshot(target);
 
     if (!target && (this.dragSelect || this.deselectOnOutsideClick) && captureElement) {
       captureElement.setPointerCapture(event.pointerId);
@@ -215,13 +247,14 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     this.requestUpdate();
   };
 
-  #commitClickSelection(target: HTMLElement, event: PointerEvent) {
+  #commitClickSelection(target: Element, event: PointerEvent) {
     const previousSelected = this.#getSelectedElements();
     this.#applyClickSelection(target, event);
+    this.#focusSelectionTarget(target);
     this.#emitSelectionEvents(previousSelected, 'click');
   }
 
-  #applyClickSelection(target: HTMLElement, event: PointerEvent) {
+  #applyClickSelection(target: Element, event: PointerEvent) {
     const mode = this.#getSelectionMode();
     const selectable = this.#getSelectableElements();
     const selected = this.#getSelectedElements();
@@ -280,13 +313,70 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     this.#emitSelectionEvents(previousSelected, source);
   }
 
-  #emitSelectionEvents(previousSelected: HTMLElement[], source: SelectionBoxChangeSource) {
+  #emitSelectionEvents(previousSelected: Element[], source: SelectionBoxChangeSource) {
     const detail = this.#createChangeDetail(previousSelected, source);
     if (detail.changedItems.length === 0) return;
 
     this.#syncManagedChildAccessibility();
     this.#emitEvent('selection-box-change', detail);
     this.#emitEvent('selection-box-commit', detail);
+  }
+
+  #orderSelectedElements(direction: SelectionBoxOrderDirection, source: SelectionBoxOrderSource) {
+    this.#orderElements(this.#getSelectedElements(), direction, source);
+  }
+
+  #orderElements(
+    movedElements: Element[],
+    direction: SelectionBoxOrderDirection,
+    source: SelectionBoxOrderSource,
+  ) {
+    const movableElements = movedElements.filter((element) => this.#getSelectableElements().includes(element));
+    if (movableElements.length === 0) {
+      return;
+    }
+
+    const previousDirectChildren = this.#getDirectChildren();
+
+    if (direction === 'front') {
+      this.append(...movableElements);
+    } else {
+      this.prepend(...movableElements);
+    }
+
+    const nextDirectChildren = this.#getDirectChildren();
+    if (this.#hasSameElementOrder(previousDirectChildren, nextDirectChildren)) {
+      return;
+    }
+
+    this.#syncManagedChildAccessibility();
+    const detail = this.#createOrderChangeDetail(movableElements, direction, source);
+    this.#emitEvent('selection-box-order-change', detail);
+    this.#emitEvent('selection-box-order-commit', detail);
+  }
+
+  #createOrderChangeDetail(
+    movedElements: Element[],
+    direction: SelectionBoxOrderDirection,
+    source: SelectionBoxOrderSource,
+  ): SelectionBoxOrderChangeDetail {
+    const movedSet = new Set(movedElements);
+    const items = this.#getSelectableElements().map((element) => this.#toItemDetail(element));
+
+    return {
+      items,
+      selectedItems: items.filter((item) => item.selected),
+      movedItems: items.filter((item) => movedSet.has(item.element)),
+      direction,
+      source,
+    };
+  }
+
+  #hasSameElementOrder(previousElements: Element[], nextElements: Element[]): boolean {
+    return (
+      previousElements.length === nextElements.length &&
+      previousElements.every((element, index) => nextElements[index] === element)
+    );
   }
 
   #createRectFromPoints(startX: number, startY: number, endX: number, endY: number): SelectionBoxRect {
@@ -298,7 +388,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     };
   }
 
-  #getElementsOverlappingRect(rect: SelectionBoxRect): HTMLElement[] {
+  #getElementsOverlappingRect(rect: SelectionBoxRect): Element[] {
     const hostBounds = this.getBoundingClientRect();
     const dragBounds = {
       left: hostBounds.left + rect.left,
@@ -318,7 +408,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     });
   }
 
-  #setPreviewElements(elements: HTMLElement[]) {
+  #setPreviewElements(elements: Element[]) {
     const nextSet = new Set(elements);
 
     this.previewElements.forEach((element) => {
@@ -351,11 +441,33 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     this.focusedElement = undefined;
   }
 
-  #getSelectableTargetFromComposedPath(path: EventTarget[]): HTMLElement | undefined {
+  #capturePointerSelectionSnapshot(target: Element | undefined) {
+    if (!target || !this.doubleClickBringToFront) {
+      this.pointerSelectionSnapshot = undefined;
+      return;
+    }
+
+    const now = Date.now();
+    if (
+      this.pointerSelectionSnapshot?.target === target &&
+      now - this.pointerSelectionSnapshot.timestamp <= DOUBLE_CLICK_SNAPSHOT_TIMEOUT
+    ) {
+      return;
+    }
+
+    this.pointerSelectionSnapshot = {
+      target,
+      selectedElements: this.#getSelectedElements(),
+      targetWasSelected: target.hasAttribute('selected'),
+      timestamp: now,
+    };
+  }
+
+  #getSelectableTargetFromComposedPath(path: EventTarget[]): Element | undefined {
     const directChildren = this.#getDirectChildren();
 
-    return path.find((node): node is HTMLElement => {
-      if (!(node instanceof HTMLElement) || !directChildren.includes(node)) {
+    return path.find((node): node is Element => {
+      if (!(node instanceof Element) || !directChildren.includes(node)) {
         return false;
       }
 
@@ -363,8 +475,8 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     });
   }
 
-  #getSelectionBoundsRect(element: HTMLElement): SelectionBoundsRect {
-    const provider = element as HTMLElement & SelectionBoundsProvider;
+  #getSelectionBoundsRect(element: Element): SelectionBoundsRect {
+    const provider = element as Element & SelectionBoundsProvider;
 
     if (typeof provider.getSelectionBoundsRect === 'function') {
       const rect = provider.getSelectionBoundsRect();
@@ -380,7 +492,9 @@ export class CaskoUiSelectionBoxElement extends LitElement {
       }
     }
 
-    const shadowBoundsElement = element.shadowRoot?.querySelector<HTMLElement>('[data-selection-bounds]');
+    const shadowBoundsElement = this.#getElementShadowRoot(element)?.querySelector<HTMLElement>(
+      '[data-selection-bounds]',
+    );
     if (shadowBoundsElement) {
       return shadowBoundsElement.getBoundingClientRect();
     }
@@ -401,8 +515,8 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     });
   }
 
-  #pathRepresentsSelectableHit(path: EventTarget[], element: HTMLElement): boolean {
-    const shadowRoot = element.shadowRoot;
+  #pathRepresentsSelectableHit(path: EventTarget[], element: Element): boolean {
+    const shadowRoot = this.#getElementShadowRoot(element);
 
     if (!shadowRoot) {
       return true;
@@ -410,7 +524,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
 
     return path.some(
       (node) =>
-        node instanceof HTMLElement &&
+        node instanceof Element &&
         node.hasAttribute('data-selection-hit') &&
         shadowRoot.contains(node),
     );
@@ -442,15 +556,16 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     };
   }
 
-  #getDirectChildren(): HTMLElement[] {
-    return this.assignedElements ?? [];
+  #getDirectChildren(): Element[] {
+    const lightDomChildren = Array.from(this.children);
+    return lightDomChildren.length > 0 ? lightDomChildren : (this.assignedElements ?? []);
   }
 
-  #getSelectableElements(): HTMLElement[] {
+  #getSelectableElements(): Element[] {
     return this.#getDirectChildren().filter((element) => !element.hasAttribute('ignore'));
   }
 
-  #getSelectedElements(): HTMLElement[] {
+  #getSelectedElements(): Element[] {
     return this.#getSelectableElements().filter((element) => element.hasAttribute('selected'));
   }
 
@@ -482,7 +597,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
   }
 
   #createChangeDetail(
-    previousSelected: HTMLElement[],
+    previousSelected: Element[],
     source: SelectionBoxChangeSource,
   ): SelectionBoxChangeDetail {
     const selectable = this.#getSelectableElements();
@@ -503,7 +618,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     };
   }
 
-  #toItemDetail(element: HTMLElement): SelectionBoxItemDetail {
+  #toItemDetail(element: Element): SelectionBoxItemDetail {
     return {
       element,
       value: element.getAttribute(this.valueAttr),
@@ -538,6 +653,16 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     this.#emitSelectionEvents(previousSelected, 'keyboard');
   };
 
+  #onDoubleClick = (event: MouseEvent) => {
+    if (this.disabled || !this.doubleClickBringToFront) return;
+
+    const target = this.#getSelectableTargetFromComposedPath(event.composedPath());
+    const snapshot = this.pointerSelectionSnapshot;
+    if (!target || !snapshot?.targetWasSelected || snapshot.target !== target) return;
+
+    this.#orderElements(snapshot.selectedElements, 'front', 'double-click');
+  };
+
   #onFocusIn = (event: FocusEvent) => {
     const target = this.#getSelectableTargetFromComposedPath(event.composedPath());
 
@@ -563,7 +688,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     if (
       event.relatedTarget instanceof Node &&
       (previousTarget.contains(event.relatedTarget) ||
-        previousTarget.shadowRoot?.contains(event.relatedTarget))
+        this.#getElementShadowRoot(previousTarget)?.contains(event.relatedTarget))
     ) {
       return;
     }
@@ -595,7 +720,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
         }
 
         if (!element.hasAttribute('tabindex') && !this.#isNaturallyFocusable(element)) {
-          element.tabIndex = 0;
+          element.setAttribute('tabindex', '0');
           element.setAttribute('data-selection-box-managed-tabindex', '');
         }
 
@@ -618,7 +743,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     });
   }
 
-  #isNaturallyFocusable(element: HTMLElement): boolean {
+  #isNaturallyFocusable(element: Element): boolean {
     const tagName = element.tagName.toLowerCase();
 
     if (['button', 'input', 'select', 'textarea'].includes(tagName)) {
@@ -630,6 +755,22 @@ export class CaskoUiSelectionBoxElement extends LitElement {
     }
 
     return element.hasAttribute('contenteditable');
+  }
+
+  #focusSelectionTarget(element: Element) {
+    if (!this.#canFocusElement(element)) {
+      return;
+    }
+
+    element.focus({ preventScroll: true });
+  }
+
+  #canFocusElement(element: Element): element is HTMLElement | SVGElement {
+    return element instanceof HTMLElement || element instanceof SVGElement;
+  }
+
+  #getElementShadowRoot(element: Element): ShadowRoot | null {
+    return element instanceof HTMLElement ? element.shadowRoot : null;
   }
 
   static styles = css`
@@ -664,6 +805,7 @@ export class CaskoUiSelectionBoxElement extends LitElement {
       --selection-box-drag-outline: 1px solid rgba(15, 84, 73, 0.7);
       --selection-box-drag-background: rgba(15, 84, 73, 0.12);
       --selection-box-drag-z-index: 10;
+      --selection-box-item-user-select: none;
     }
 
     .surface {
@@ -675,31 +817,33 @@ export class CaskoUiSelectionBoxElement extends LitElement {
 
     ::slotted(*) {
       transition: var(--selection-box-transition);
+      -webkit-user-select: var(--selection-box-item-user-select);
+      user-select: var(--selection-box-item-user-select);
     }
 
     ::slotted([selected]) {
-      outline: var(--selection-box-selected-outline);
-      outline-offset: var(--selection-box-selected-outline-offset);
-      background: var(--selection-box-selected-background);
-      box-shadow: var(--selection-box-selected-shadow);
+      outline: var(--selection-box-selected-outline) !important;
+      outline-offset: var(--selection-box-selected-outline-offset) !important;
+      background: var(--selection-box-selected-background) !important;
+      box-shadow: var(--selection-box-selected-shadow) !important;
     }
 
     ::slotted([data-selection-preview]:not([selected])) {
-      outline: var(--selection-box-preview-outline);
-      outline-offset: var(--selection-box-preview-outline-offset);
-      background: var(--selection-box-preview-background);
-      box-shadow: var(--selection-box-preview-shadow);
+      outline: var(--selection-box-preview-outline) !important;
+      outline-offset: var(--selection-box-preview-outline-offset) !important;
+      background: var(--selection-box-preview-background) !important;
+      box-shadow: var(--selection-box-preview-shadow) !important;
     }
 
     ::slotted([data-selection-focus]) {
-      outline: var(--selection-box-focus-outline);
-      outline-offset: var(--selection-box-focus-outline-offset);
-      background: var(--selection-box-focus-background);
-      box-shadow: var(--selection-box-focus-shadow);
+      outline: var(--selection-box-focus-outline) !important;
+      outline-offset: var(--selection-box-focus-outline-offset) !important;
+      background: var(--selection-box-focus-background) !important;
+      box-shadow: var(--selection-box-focus-shadow) !important;
     }
 
     ::slotted([selected][data-selection-focus]) {
-      box-shadow: var(--selection-box-selected-focus-shadow);
+      box-shadow: var(--selection-box-selected-focus-shadow) !important;
     }
 
     .drag-overlay {

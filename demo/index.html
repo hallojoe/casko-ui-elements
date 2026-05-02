@@ -202,6 +202,107 @@
         color: #17322d;
       }
 
+      .angle-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+      }
+
+      .angle-demo-item {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+        min-width: 0;
+      }
+
+      .angle-demo-item angle-input {
+        --angle-input-size: 64px;
+        --angle-input-track-stroke: rgba(0, 0, 0, .05);
+      }
+
+      .angle-demo-item2 {
+        --angle-input-track-stroke: rgba(82, 83, 85, 0);
+        --angle-input-value-stroke-width: 0;
+        --angle-input-value-stroke: #365c8d00;
+        --angle-input-line-stroke: rgba(53, 91, 142, 00);
+        --angle-input-handle-stroke: #365c8d;
+        --angle-input-center-fill: #365c8d;
+      }
+
+
+      .angle-demo-markers {
+        --angle-input-size: 112px;
+        --angle-input-track-stroke-width: 5;
+        --angle-input-value-stroke-width: 4;
+        --angle-input-step-tick-length: 5;
+        --angle-input-step-value-text-font: 600 0.55rem/1 "Segoe UI", sans-serif;
+      }
+
+      .angle-demo-cool {
+        --angle-input-track-stroke: rgba(82, 83, 85, 0.38);
+        --angle-input-value-stroke: #365c8d;
+        --angle-input-line-stroke: rgba(53, 91, 142, 0.52);
+        --angle-input-handle-stroke: #365c8d;
+        --angle-input-center-fill: #365c8d;
+      }
+
+      .angle-demo-warm {
+        --angle-input-track-stroke: rgba(82, 83, 85, 0.38);
+        --angle-input-value-stroke: #d8682d;
+        --angle-input-line-stroke: rgba(216, 104, 45, 0.52);
+        --angle-input-handle-fill: #fff7ed;
+        --angle-input-handle-stroke: #d8682d;
+        --angle-input-center-fill: #d8682d;
+      }
+
+      .angle-demo-custom-handle {
+        --angle-input-handle-fill: #17322d;
+        --angle-input-handle-stroke: #ffffff;
+        --angle-input-handle-stroke-width: 1.5;
+      }
+
+      .anchor-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+      }
+
+      .anchor-demo-item {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+        min-width: 0;
+      }
+
+      .anchor-demo-item anchor-point-input {
+        --anchor-point-input-size: 48px;
+      }
+
+      .anchor-demo-cool {
+        --anchor-point-input-guide-stroke: rgba(53, 91, 142, 0);
+        --anchor-point-input-handle-fill: rgba(53, 91, 142, 0.16);
+        --anchor-point-input-handle-stroke: rgba(53, 91, 142, 0.48);
+        --anchor-point-input-active-handle-fill: #365c8d;
+        --anchor-point-input-active-handle-stroke: #365c8d;
+      }
+
+      .anchor-demo-warm {
+        --anchor-point-input-guide-stroke: rgba(216, 104, 45, 0.34);
+        --anchor-point-input-handle-fill: transparent;
+        --anchor-point-input-handle-stroke: rgba(216, 104, 45, 0.48);
+        --anchor-point-input-active-handle-fill: transparent;
+        --anchor-point-input-active-handle-stroke: rgba(216, 104, 45, 1);;
+      }
+
+      @media (max-width: 680px) {
+        .angle-demo-grid,
+        .anchor-demo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .sector-demo-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -430,6 +531,11 @@
         --selection-box-preview-background: transparent;
         --selection-box-preview-outline-offset: 0px;
         --selection-box-preview-shadow: none;
+        --selection-box-focus-outline: none;
+        --selection-box-focus-background: transparent;
+        --selection-box-focus-outline-offset: 0px;
+        --selection-box-focus-shadow: none;
+        --selection-box-selected-focus-shadow: none;
       }
 
       .combo-selection-box transform-box {
@@ -514,13 +620,19 @@
           <p class="hint">
             This is the new generic positioned drag primitive. It can drag any slotted content
             without resize or rotate behavior, and it shares the same pointer-based drag model used
-            by the rest of the stage components.
+            by the rest of the stage components. The second card snaps to a 16px grid.
           </p>
           <div class="stage" style="min-height: 320px;">
             <drag-box id="drag-box-demo" x="56" y="44">
               <article class="draggable-note">
-                <strong>Draggable Card</strong>
+                <strong>Free Drag Card</strong>
                 <span>Drag this freely inside the stage to reuse the same movement primitive.</span>
+              </article>
+            </drag-box>
+            <drag-box id="drag-box-snap-demo" x="272" y="148" snap-step="16">
+              <article class="draggable-note">
+                <strong>Snapped Card</strong>
+                <span>Drag this card and it will snap to the nearest 16px step.</span>
               </article>
             </drag-box>
           </div>
@@ -541,6 +653,8 @@
               <code>svg</code>, and a semantic <code>article</code>.
             </p>
             <div class="selection-stage-frame">
+              
+              
               <selection-box
                 id="selection-stage-demo"
                 class="selection-stage"
@@ -548,12 +662,14 @@
                 multi-select-key="shift"
                 drag-select
                 deselect-on-outside-click>
+
+
                 <img
                   value="image"
                   alt="Studio desk with color swatches and layout sketches"
                   src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 368'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23f6d6b0'/%3E%3Cstop offset='45%25' stop-color='%23dc8553'/%3E%3Cstop offset='100%25' stop-color='%23653b2a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='488' height='368' rx='34' fill='url(%23bg)'/%3E%3Ccircle cx='118' cy='94' r='48' fill='rgba(255,255,255,0.28)'/%3E%3Crect x='58' y='178' width='180' height='112' rx='18' fill='rgba(255,255,255,0.8)'/%3E%3Crect x='258' y='92' width='166' height='210' rx='24' fill='rgba(255,255,255,0.9)'/%3E%3Cpath d='M84 214h128M84 242h90M84 270h110' stroke='%23924e2d' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M290 126h102v92H290z' fill='%23ffd89b'/%3E%3Cpath d='M302 238l32-42 30 24 34-46 24 64z' fill='%23cf7347'/%3E%3C/svg%3E" />
 
-                <svg value="svg" viewBox="0 0 248 188" aria-label="Decorative vector poster" selected>
+                <svg style="background-color: pink;" value="svg" viewBox="0 0 248 188" aria-label="Decorative vector poster" selected>
                   <defs>
                     <linearGradient id="selection-demo-svg-fill" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stop-color="#366593" />
@@ -599,6 +715,550 @@
               </selection-box>
             </div>
             <div class="log" id="selection-log">Waiting for selection...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Angle Input</h2>
+          <p class="hint">
+            Drag the handle around the circle to set an angle, turn ratio, or distributed number.
+            The control supports wrapped degrees or radians, bounded ranges, clockwise or
+            counterclockwise direction, snapping, and keyboard stepping with arrow keys,
+            PageUp/PageDown, Home, and End.
+          </p>
+          <div class="stack">
+
+
+            <div class="angle-demo-grid">
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-default-demo"
+                  label="Degrees"
+                  show-value-text
+                  display-unit="°"
+                  value="45"
+                  step="15"
+                  snap-step="15"></angle-input>
+                <p class="subtle">Clockwise degrees with 15 degree snapping</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-counter-demo"
+                  class="angle-demo-cool"
+                  label="Counterclockwise"
+                  direction="counterclockwise"
+                  value="90"
+                  show-value-text
+                  display-unit="?"
+                  step="5"
+                  snap-step="5"></angle-input>
+                <p class="subtle">Counterclockwise from the top origin</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-radian-demo"
+                  class="angle-demo-warm"
+                  label="Radians"
+                  show-value-text
+                  display-unit="&pi;*2"      
+                  value-text-anchor="block-center-inline-end"
+                  value-text-offset="10"
+                  unit="radians"
+                  value="1.5708"
+                  step="0.261799"
+                  snap-step="0.261799"></angle-input>
+                <p class="subtle">Radian value with title-only label</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-bounded-demo"
+                  class="angle-demo-cool"
+                  label="Bounded degrees"
+                  value="75"
+                  show-value-text
+                  display-unit="30/"
+                  display-unit-position="before"
+                  min="30"
+                  max="120"
+                  hide-constrained-track
+                  show-step-ticks
+                  step="15"
+                  snap-step="15"></angle-input>
+                <p class="subtle">Clamped degree range from 30 to 120 with usable track only</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-ratio-demo"
+                  class="angle-demo-warm"
+                  label="Ratio"
+                  unit="ratio"
+                  value="0.25"
+                  step="0.05"
+                  snap-step="0.05"></angle-input>
+                <p class="subtle">Ratio mode maps 0 to 1 across one turn</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-number-demo"
+                  label="Progress"
+                  unit="number"                  
+                  value="140"
+                  distribution="400"
+                  min="50"
+                  max="200"                  
+                  step="10"
+                  snap-step="5"></angle-input>
+                <p class="subtle">Number mode maps value over distribution</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-data-list-sliding-demo"
+                  class="angle-demo-item2"
+                  label="Volume sliding"
+                  label-display="title"
+                  display-unit="dB"
+                  display-text
+                  unit="number"
+                  value="4"
+                  distribution="100"
+                  handle-path="M 0 -3 L 3 3 L -3 3 Z"
+                  rotate-handle                  
+                  data-list="[5,10,15,20,25,50,75,100]"
+                  arc-degrees="270"
+                  start-angle="135"
+                  show-step-ticks
+                  show-step-value-text
+                  handle-offset="10"
+                  step-value-text-offset="20"
+                  step="1"
+                  snap-step="1"></angle-input>
+                <p class="subtle">Data list range with listed tick labels and stepped in-between values</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-data-list-absolute-demo"
+                  class="angle-demo-warm angle-demo-markers"
+                  label="Volume absolute"
+                  show-value-text
+                  display-unit="dB"
+                  unit="number"
+                  value="3"
+                  distribution="10"
+                  data-list="[1,2,3,5,10]"
+                  data-list-mode="absolute"
+                  show-step-ticks
+                  show-step-value-text
+                  step-value-text-offset="12"></angle-input>
+                <p class="subtle">Data list mode that jumps between listed values</p>
+              </div>
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-generated-step-markers-demo"
+                  class="angle-demo-markers"
+                  label="Generated steps"
+                  value="180"
+                  show-step-ticks
+                  show-step-value-text
+                  step-value-text-offset="12"
+                  step="90"
+                  snap-step="45"></angle-input>
+                <p class="subtle">Generated step markers without a data list</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-center-demo"
+                  class="angle-demo-cool"
+                  label="Visible value"
+                  value="135"
+                  show-value-text
+                  display-unit="°"
+                  step="15"
+                  snap-step="15"></angle-input>
+                <p class="subtle">Centered visible value text</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value"
+                  value="70"
+                  show-value-text
+                  display-unit="°"
+                  value-text-offset="4"
+                  value-text-anchor="block-center-inline-end"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value 2"
+                  label-display="title"
+                  value="77"
+                  display-unit="°"
+                  show-value-text
+                  value-text-offset="20"
+                  value-text-anchor="block-center-inline-start"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value 3"
+                  label-display="title"
+                  value="70"
+                  display-unit="°"
+                  show-value-text
+                  value-text-offset="4"
+                  value-text-anchor="block-start-inline-start"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value 3"
+                  label-display="title"
+                  value="70"
+                  display-unit="°"
+                  show-value-text
+                  value-text-anchor="block-start-inline-end"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value 3"
+                  label-display="title"
+                  value="70"
+                  display-unit="°"
+                  show-value-text
+                  value-text-anchor="block-end-inline-start"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-value-text-edge-demo"
+                  class="angle-demo-warm"
+                  label="Edge value 3"
+                  label-display="title"
+                  value="70"
+                  display-unit="°"
+                  show-value-text
+                  value-text-anchor="block-end-inline-end"
+                  step="10"
+                  snap-step="10"></angle-input>
+                <p class="subtle">Value text anchored to the inline end</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-minimal-demo"
+                  label="Minimal"
+                  value="225"
+                  hide-angle-line
+                  hide-center-point
+                  step="15"
+                  snap-step="15"></angle-input>
+                <p class="subtle">Handle without center point or angle line</p>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-custom-handle-demo"
+                  class="angle-demo-custom-handle"
+                  label="Custom handle"
+                  value="45"
+                  handle-offset="8"
+                  handle-path="M 0 -7 L 6 6 L 0 3 L -6 6 Z"
+                  rotate-handle
+                  step="15"
+                  snap-step="15"></angle-input>
+                <p class="subtle">Custom SVG path handle offset and rotated to point outward</p>
+              </div>
+
+
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-demo4"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="90"
+                  min="0"
+                  max="90"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="90"
+                  start-angle="0"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-semicirclex-demo"
+                  class="angle-demo-cool"
+                  label="Semicircle"
+                  label-display="title"
+                  unit="number"
+                  value="180"
+                  min="0"
+                  max="180"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="180"
+                  start-angle="0"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-demo5"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="90"
+                  min="0"
+                  max="90"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="90"
+                  start-angle="90"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-dem9a"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="180"
+                  min="0"
+                  max="180"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="180"
+                  start-angle="270"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-dem9"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="359"
+                  value="360"
+                  min="0"
+                  max="360"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  show-value-text
+                  step="90"
+                  snap-step="5"></angle-input>
+              </div>
+
+              
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-dem9"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="180"
+                  min="0"
+                  max="180"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="180"
+                  start-angle="90"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-demo"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="90"
+                  min="0"
+                  max="90"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="90"
+                  start-angle="270"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-dem9"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="180"
+                  min="0"
+                  max="180"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="180"
+                  start-angle="180"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+
+              <div class="angle-demo-item">
+                <angle-input
+                  id="angle-quater-demo2"
+                  class="angle-demo-cool"
+                  label="Quatercircle"
+                  label-display="title"
+                  unit="number"
+                  value="90"
+                  min="0"
+                  max="90"
+                  handle-path="M 0 -4 L 4 4 L -4 4 Z"
+                  rotate-handle
+                  arc-degrees="90"
+                  start-angle="180"
+                  show-value-text
+                  step="10"
+                  snap-step="5"></angle-input>
+              </div>
+            </div>
+            <div class="log" id="angle-log">Waiting for angle input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Anchor Point Input</h2>
+          <p class="hint">
+            Pick a CSS-logical anchor point from the 3x3 grid. Click a handle to select it, or move
+            focus with the arrow keys and press <kbd>Enter</kbd> or <kbd>Space</kbd>.
+          </p>
+          <div class="stack">
+            <div class="anchor-demo-grid">
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-default-demo"
+                  label="Anchor"
+                  value="block-center-inline-center"></anchor-point-input>
+                <p class="subtle">Default center anchor</p>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-cool-demo"
+                  class="anchor-demo-cool"
+                  label="Top start"
+                   handle-shape="rect"
+                  value="block-start-inline-start"></anchor-point-input>
+                <p class="subtle">Logical block start and inline start</p>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-warm-demo"
+                  class="anchor-demo-warm"
+                  handle-shape="rect"
+                  label="End"
+                  label-display="title"
+                  value="block-end-inline-end"></anchor-point-input>
+                <p class="subtle">Title-only label with warm styling</p>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-disabled-demo"
+                  label="Disabled anchors"
+                  value="block-center-inline-center"
+                  disabled-values="block-start-inline-start,block-center-inline-end,block-end-inline-end"></anchor-point-input>
+                <p class="subtle">Disabled anchors stay visible with dimmed handles</p>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-center-inline-start","block-center-inline-end","block-start-inline-center"]'
+                  hide-disabled-anchors></anchor-point-input>
+                <p class="subtle">Hidden disabled anchors are skipped by keyboard navigation</p>
+              </div>
+
+              <div class="anchor-demo-item">
+                <anchor-point-input
+                  id="anchor-hidden-disabled-demo2"
+                  class="anchor-demo-cool"
+                  label="Hidden anchors"
+                  value="block-center-inline-center"
+                  disabled-values='["block-start-inline-start","block-start-inline-end","block-center-inline-center","block-end-inline-start","block-end-inline-end"]'
+                  hide-disabled-anchors></anchor-point-input>
+                <p class="subtle">Hidden disabled anchors are skipped by keyboard navigation</p>
+              </div>
+
+
+            </div>
+            <div class="log" id="anchor-log">Waiting for anchor input...</div>
           </div>
         </article>
 
@@ -714,7 +1374,7 @@
           <h2>Transform Box</h2>
           <p class="hint">
             Drag the box to move it, use the corner and edge handles to resize, and drag the top
-            handle to rotate. Arrow keys also move the selected box.
+            handle to rotate. Pointer move and resize snap to 16px; rotate and arrow keys stay free.
           </p>
           <div class="stage">
             <transform-box
@@ -725,6 +1385,7 @@
               height="140"
               rotation="-8"
               selected
+              snap-step="16"
               show-side-handles
               rotatable
               resizable
@@ -759,10 +1420,12 @@
               <button type="button" class="combo-button" data-combo-move="left">Left</button>
               <button type="button" class="combo-button" data-combo-move="right">Right</button>
               <button type="button" class="combo-button" data-combo-move="down">Down</button>
+              <button type="button" class="combo-button" data-combo-order="front">Front</button>
+              <button type="button" class="combo-button" data-combo-order="back">Back</button>
             </div>
             <p class="subtle">
-              These buttons sit outside the stage and move the currently selected items in
-              <code>x</code> and <code>y</code>.
+              These buttons sit outside the stage and move or layer the currently selected items.
+              Double-click a selected item to bring the selected group to front.
             </p>
           </div>
           <div class="stage combo-stage">
@@ -772,6 +1435,7 @@
               selection-mode="multiple"
               multi-select-key="shift"
               drag-select
+              double-click-bring-to-front
               deselect-on-outside-click>
               <transform-box
                 value="promo-tile"
@@ -831,8 +1495,12 @@
     <script type="module">
       const transformDemo = document.querySelector('#transform-demo');
       const log = document.querySelector('#event-log');
-      const dragBoxDemo = document.querySelector('#drag-box-demo');
+      const dragBoxDemos = document.querySelectorAll('#drag-box-demo, #drag-box-snap-demo');
       const dragLog = document.querySelector('#drag-log');
+      const angleDemos = Array.from(document.querySelectorAll('angle-input'));
+      const angleLog = document.querySelector('#angle-log');
+      const anchorDemos = Array.from(document.querySelectorAll('anchor-point-input'));
+      const anchorLog = document.querySelector('#anchor-log');
       const numberDemos = Array.from(document.querySelectorAll('[data-number-label]'));
       const numberLog = document.querySelector('#number-log');
       const selectionStageDemo = document.querySelector('#selection-stage-demo');
@@ -841,6 +1509,7 @@
       const comboLog = document.querySelector('#combo-log');
       const comboStepInput = document.querySelector('#combo-step-input');
       const comboMoveButtons = Array.from(document.querySelectorAll('[data-combo-move]'));
+      const comboOrderButtons = Array.from(document.querySelectorAll('[data-combo-order]'));
       const sectorAnnularDemo = document.querySelector('#sector-annular-demo');
       const sectorRectangularDemo = document.querySelector('#sector-rectangular-demo');
 
@@ -991,19 +1660,21 @@
         });
       });
 
-      if (dragBoxDemo && dragLog) {
+      if (dragBoxDemos.length && dragLog) {
         const renderDragLog = (label, detail) => {
           dragLog.textContent = `${label}
 x: ${Math.round(detail.x)}  y: ${Math.round(detail.y)}
 source: ${detail.source}`;
         };
 
-        dragBoxDemo.addEventListener('drag-box-change', (event) => {
-          renderDragLog('drag-box-change', event.detail);
-        });
+        dragBoxDemos.forEach((dragBoxDemo) => {
+          dragBoxDemo.addEventListener('drag-box-change', (event) => {
+            renderDragLog('drag-box-change', event.detail);
+          });
 
-        dragBoxDemo.addEventListener('drag-box-commit', (event) => {
-          renderDragLog('drag-box-commit', event.detail);
+          dragBoxDemo.addEventListener('drag-box-commit', (event) => {
+            renderDragLog('drag-box-commit', event.detail);
+          });
         });
       }
 
@@ -1060,6 +1731,7 @@ items: ${detail.items.map((item) => `${item.value ?? '(null)'}=${item.selected}`
 
         const getComboItems = () => Array.from(comboSelectionDemo.children);
         const getSelectedComboItems = () => getComboItems().filter((element) => element.hasAttribute('selected'));
+        const getComboOrder = () => getComboItems().map((element) => element.getAttribute('value') ?? '(null)').join(' < ');
         const getItemPosition = (element) => ({
           x: Number(element.x ?? 0),
           y: Number(element.y ?? 0),
@@ -1138,7 +1810,8 @@ items: ${detail.items.map((item) => `${item.value ?? '(null)'}=${item.selected}`
 
         const renderComboLog = (label, lines) => {
           comboLog.textContent = `${label}
-${lines.join('\n')}`;
+${lines.join('\n')}
+order: ${getComboOrder()}`;
         };
 
         comboSelectionDemo.addEventListener('selection-box-change', (event) => {
@@ -1147,6 +1820,16 @@ ${lines.join('\n')}`;
             `selected: ${detail.selectedItems.map((item) => item.value ?? '(null)').join(', ') || 'none'}`,
             `changed: ${detail.changedItems.map((item) => `${item.value ?? '(null)'}:${item.selected ? 'selected' : 'deselected'}`).join(', ') || 'none'}`,
             `mode: ${detail.mode}`,
+          ]);
+        });
+
+        comboSelectionDemo.addEventListener('selection-box-order-change', (event) => {
+          const detail = event.detail;
+          renderComboLog('selection-box-order-change', [
+            `moved: ${detail.movedItems.map((item) => item.value ?? '(null)').join(', ') || 'none'}`,
+            `selected: ${detail.selectedItems.map((item) => item.value ?? '(null)').join(', ') || 'none'}`,
+            `direction: ${detail.direction}`,
+            `source: ${detail.source}`,
           ]);
         });
 
@@ -1193,6 +1876,19 @@ ${lines.join('\n')}`;
             moveSelectedComboItems(direction.x * step, direction.y * step);
           });
         });
+
+        comboOrderButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            if (button.dataset.comboOrder === 'front') {
+              comboSelectionDemo.bringSelectedToFront?.();
+              return;
+            }
+
+            if (button.dataset.comboOrder === 'back') {
+              comboSelectionDemo.sendSelectedToBack?.();
+            }
+          });
+        });
       }
 
       if (numberLog && numberDemos.length > 0) {
@@ -1224,6 +1920,52 @@ numbers: ${numbers || 'none'}`;
 
         numberDemos.forEach((element) => {
           bindLog(element, element.dataset.numberLabel ?? 'input');
+        });
+      }
+
+      if (angleLog && angleDemos.length > 0) {
+        const renderAngleLog = (label, detail) => {
+          angleLog.textContent = `${label}
+value: ${detail.value.toFixed(3)} ${detail.unit}
+distribution: ${detail.distribution.toFixed(3)}
+degrees: ${detail.degrees.toFixed(2)}
+radians: ${detail.radians.toFixed(4)}
+direction: ${detail.direction}
+source: ${detail.source}`;
+        };
+
+        angleDemos.forEach((element) => {
+          const label = element.getAttribute('label') || element.id || 'angle';
+
+          element.addEventListener('angle-input-change', (event) => {
+            renderAngleLog(`${label} change`, event.detail);
+          });
+
+          element.addEventListener('angle-input-commit', (event) => {
+            renderAngleLog(`${label} commit`, event.detail);
+          });
+        });
+      }
+
+      if (anchorLog && anchorDemos.length > 0) {
+        const renderAnchorLog = (label, detail) => {
+          anchorLog.textContent = `${label}
+value: ${detail.value}
+block: ${detail.block}
+inline: ${detail.inline}
+source: ${detail.source}`;
+        };
+
+        anchorDemos.forEach((element) => {
+          const label = element.getAttribute('label') || element.id || 'anchor';
+
+          element.addEventListener('anchor-point-input-change', (event) => {
+            renderAnchorLog(`${label} change`, event.detail);
+          });
+
+          element.addEventListener('anchor-point-input-commit', (event) => {
+            renderAnchorLog(`${label} commit`, event.detail);
+          });
         });
       }
     </script>

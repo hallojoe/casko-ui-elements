@@ -269,6 +269,10 @@ interface AnchorPointInputTriggerDetail extends AnchorPointInputChangeDetail {
   allow-crossing="false"
   gap="8"
   border-radius="8"
+  value-snap-step="5"
+  rotate-snap-step="15"
+  radius-snap-step="10"
+  height-snap-step="5"
   value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
   gap-handle-path="M -5 -5 H 5 V 5 H -5 Z"
   border-radius-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
@@ -312,6 +316,10 @@ Attributes/properties:
 - `value-handle-path`, `radius-handle-path`, `height-handle-path`, `gap-handle-path`, `border-radius-handle-path`, `start-angle-handle-path`: optional SVG path data centered on `0,0`; empty uses the default circle for that handle type
 - `keyboard-step`: keyboard step for value handles, default `1`
 - `radius-step`: keyboard step for radius and height handles, default `5`
+- `value-snap-step`: value-handle drag snap and keyboard step in total-value units, default `0`
+- `rotate-snap-step`: start-angle drag snap and keyboard step in degrees, default `0`
+- `radius-snap-step`: radius-handle drag snap and keyboard step, default `0`
+- `height-snap-step`: height-handle drag snap and keyboard step, default `0`
 - `disabled`: disables pointer and keyboard changes
 
 Events:
@@ -786,15 +794,21 @@ circular-input {
   --circular-input-size: 320px;
   --circular-input-sector-stroke: rgba(15, 84, 73, 0.35);
   --circular-input-line-stroke: rgba(15, 84, 73, 0.28);
+  --circular-input-handle-fill: #ffffff;
   --circular-input-handle-stroke-width: 2;
   --circular-input-value-handle-fill: #0f5449;
   --circular-input-value-handle-stroke-width: 2;
+  --circular-input-radius-handle-fill: #ffffff;
   --circular-input-radius-handle-stroke: #0f5449;
   --circular-input-radius-handle-stroke-width: 2;
+  --circular-input-height-handle-fill: #ffffff;
   --circular-input-height-handle-stroke: #d8682d;
   --circular-input-height-handle-stroke-width: 2;
+  --circular-input-gap-handle-fill: #365c8d;
   --circular-input-gap-handle-stroke-width: 2;
+  --circular-input-border-radius-handle-fill: #8b5cf6;
   --circular-input-border-radius-handle-stroke-width: 2;
+  --circular-input-start-angle-handle-fill: #d8682d;
   --circular-input-start-angle-handle-stroke-width: 2;
   --circular-input-focus-ring-stroke-width: 3;
 }

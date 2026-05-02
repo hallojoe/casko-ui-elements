@@ -84,6 +84,18 @@ export class CaskoUiCircularInputElement extends LitElement {
   @property({ type: Number, attribute: 'radius-step' })
   radiusStep = 5;
 
+  @property({ type: Number, attribute: 'value-snap-step' })
+  valueSnapStep = 0;
+
+  @property({ type: Number, attribute: 'rotate-snap-step' })
+  rotateSnapStep = 0;
+
+  @property({ type: Number, attribute: 'radius-snap-step' })
+  radiusSnapStep = 0;
+
+  @property({ type: Number, attribute: 'height-snap-step' })
+  heightSnapStep = 0;
+
   @property({ attribute: 'value-handle-anchor' })
   valueHandleAnchor: CircularInputValueHandleAnchor = 'start';
 
@@ -444,13 +456,17 @@ export class CaskoUiCircularInputElement extends LitElement {
     }
 
     const direction = event.key === 'ArrowUp' || event.key === 'ArrowRight' ? 1 : -1;
-    const baseStep = field === 'value' || field === 'start-angle'
-      ? this.#getKeyboardStep()
+    const baseStep = field === 'value'
+      ? this.#getValueKeyboardStep()
+      : field === 'start-angle'
+        ? this.#getRotateKeyboardStep()
       : field === 'gap'
         ? this.#getGapStep()
         : field === 'border-radius'
           ? this.#getBorderRadiusStep()
-          : this.#getRadiusStep();
+          : field === 'height'
+            ? this.#getHeightKeyboardStep()
+            : this.#getRadiusKeyboardStep();
     const step = baseStep * (event.shiftKey ? 10 : event.altKey ? 0.1 : 1);
     const sectors = this.#getSectors();
     const sector = sectors[index];
@@ -569,7 +585,8 @@ export class CaskoUiCircularInputElement extends LitElement {
       index: entry.index,
       angle: this.#normalizeDegrees(entry.valueAngle - this.#getStartAngle()) / FULL_TURN_DEGREES,
     }));
-    const desiredTurn = this.#normalizeDegrees(this.#getPointDegrees(point) - this.#getStartAngle()) / FULL_TURN_DEGREES;
+    const rawDesiredTurn = this.#normalizeDegrees(this.#getPointDegrees(point) - this.#getStartAngle()) / FULL_TURN_DEGREES;
+    const desiredTurn = this.#snapValueTurn(rawDesiredTurn);
     handleTurns[index] = {
       index,
       angle: this.#getAllowCrossing()
@@ -612,11 +629,13 @@ export class CaskoUiCircularInputElement extends LitElement {
       }
 
       if (field === 'radius') {
-        const radius = Math.max(this.#getRadiusMinimum(entry), Number.isFinite(value) ? value : entry.radius);
+        const snappedValue = source === 'pointer' ? this.#snapRadiusValue(value) : value;
+        const radius = Math.max(this.#getRadiusMinimum(entry), Number.isFinite(snappedValue) ? snappedValue : entry.radius);
         return { ...entry, radius, height: Math.min(Math.max(1, entry.height), radius) };
       }
 
-      const height = Math.max(1, Math.min(entry.radius, Number.isFinite(value) ? value : entry.height));
+      const snappedValue = source === 'pointer' ? this.#snapHeightValue(value) : value;
+      const height = Math.max(1, Math.min(entry.radius, Number.isFinite(snappedValue) ? snappedValue : entry.height));
       return { ...entry, height };
     });
 
@@ -632,9 +651,10 @@ export class CaskoUiCircularInputElement extends LitElement {
     const sector = sectors[index];
     if (!sector) return;
 
+    const rawHeight = Number.isFinite(innerRadius) ? sector.radius - innerRadius : sector.height;
     const nextHeight = Math.max(
       1,
-      Math.min(sector.radius, Number.isFinite(innerRadius) ? sector.radius - innerRadius : sector.height),
+      Math.min(sector.radius, this.#snapHeightValue(rawHeight)),
     );
     const nextSectors = sectors.map((entry, entryIndex) => (
       entryIndex === index ? { ...entry, height: nextHeight } : { ...entry }
@@ -662,7 +682,7 @@ export class CaskoUiCircularInputElement extends LitElement {
   }
 
   #applyStartAnglePointerValue(point: CircularInputPoint) {
-    this.#applyStartAngleValue(this.#getPointDegrees(point), 'pointer');
+    this.#applyStartAngleValue(this.#snapRotateValue(this.#getPointDegrees(point)), 'pointer');
   }
 
   #applyStartAngleValue(value: number, source: CircularInputChangeSource) {
@@ -1046,12 +1066,59 @@ export class CaskoUiCircularInputElement extends LitElement {
     return Number.isFinite(this.radiusStep) && this.radiusStep > 0 ? this.radiusStep : 5;
   }
 
+  #getValueKeyboardStep(): number {
+    return this.#getPositiveNumber(this.valueSnapStep) ?? this.#getKeyboardStep();
+  }
+
+  #getRotateKeyboardStep(): number {
+    return this.#getPositiveNumber(this.rotateSnapStep) ?? this.#getKeyboardStep();
+  }
+
+  #getRadiusKeyboardStep(): number {
+    return this.#getPositiveNumber(this.radiusSnapStep) ?? this.#getRadiusStep();
+  }
+
+  #getHeightKeyboardStep(): number {
+    return this.#getPositiveNumber(this.heightSnapStep) ?? this.#getRadiusStep();
+  }
+
   #getGapStep(): number {
     return Number.isFinite(this.gapStep) && this.gapStep > 0 ? this.gapStep : 1;
   }
 
   #getBorderRadiusStep(): number {
     return Number.isFinite(this.borderRadiusStep) && this.borderRadiusStep > 0 ? this.borderRadiusStep : 1;
+  }
+
+  #snapValueTurn(turn: number): number {
+    const step = this.#getPositiveNumber(this.valueSnapStep);
+    if (step === undefined) return this.#normalizeTurn(turn);
+
+    return this.#normalizeTurn(this.#snapNumber(turn, step / this.#getTotalValue()));
+  }
+
+  #snapRotateValue(value: number): number {
+    const step = this.#getPositiveNumber(this.rotateSnapStep);
+    return step === undefined ? value : this.#snapNumber(value, step);
+  }
+
+  #snapRadiusValue(value: number): number {
+    const step = this.#getPositiveNumber(this.radiusSnapStep);
+    return step === undefined ? value : this.#snapNumber(value, step);
+  }
+
+  #snapHeightValue(value: number): number {
+    const step = this.#getPositiveNumber(this.heightSnapStep);
+    return step === undefined ? value : this.#snapNumber(value, step);
+  }
+
+  #snapNumber(value: number, step: number): number {
+    if (!Number.isFinite(value) || !Number.isFinite(step) || step <= 0) return value;
+    return Math.round(value / step) * step;
+  }
+
+  #getPositiveNumber(value: number): number | undefined {
+    return Number.isFinite(value) && value > 0 ? value : undefined;
   }
 
   #getAllowCrossing(): boolean {
@@ -1140,7 +1207,9 @@ export class CaskoUiCircularInputElement extends LitElement {
       --circular-input-handle-fill: #ffffff;
       --circular-input-handle-stroke-width: 1;
       --circular-input-value-handle-fill: #0f5449;
+      --circular-input-radius-handle-fill: var(--circular-input-handle-fill);
       --circular-input-radius-handle-stroke: #0f5449;
+      --circular-input-height-handle-fill: var(--circular-input-handle-fill);
       --circular-input-height-handle-stroke: #d8682d;
       --circular-input-gap-handle-fill: #365c8d;
       --circular-input-gap-handle-stroke: #ffffff;
@@ -1210,35 +1279,37 @@ export class CaskoUiCircularInputElement extends LitElement {
     }
 
     .handle-value {
-      fill: var(--circular-input-value-handle-fill);
+      fill: var(--circular-input-value-handle-fill, var(--circular-input-handle-fill));
       stroke: #ffffff;
       stroke-width: var(--circular-input-value-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }
 
     .handle-radius {
+      fill: var(--circular-input-radius-handle-fill, var(--circular-input-handle-fill));
       stroke: var(--circular-input-radius-handle-stroke);
       stroke-width: var(--circular-input-radius-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }
 
     .handle-height {
+      fill: var(--circular-input-height-handle-fill, var(--circular-input-handle-fill));
       stroke: var(--circular-input-height-handle-stroke);
       stroke-width: var(--circular-input-height-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }
 
     .handle-gap {
-      fill: var(--circular-input-gap-handle-fill);
+      fill: var(--circular-input-gap-handle-fill, var(--circular-input-handle-fill));
       stroke: var(--circular-input-gap-handle-stroke);
       stroke-width: var(--circular-input-gap-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }
 
     .handle-border-radius {
-      fill: var(--circular-input-border-radius-handle-fill);
+      fill: var(--circular-input-border-radius-handle-fill, var(--circular-input-handle-fill));
       stroke: var(--circular-input-border-radius-handle-stroke);
       stroke-width: var(--circular-input-border-radius-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }
 
     .handle-start-angle {
-      fill: var(--circular-input-start-angle-handle-fill);
+      fill: var(--circular-input-start-angle-handle-fill, var(--circular-input-handle-fill));
       stroke: var(--circular-input-start-angle-handle-stroke);
       stroke-width: var(--circular-input-start-angle-handle-stroke-width, var(--circular-input-handle-stroke-width));
     }

@@ -127,6 +127,9 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   @property({ type: String, attribute: 'suggestion-mode', reflect: true })
   suggestionMode: TokenAwareInputSuggestionMode = 'none';
 
+  @property({ type: Boolean, attribute: 'hide-on-select', reflect: true })
+  hideOnSelect = true;
+
   @property({ type: Boolean, attribute: 'show-spinner', reflect: true })
   showSpinner = true;
 
@@ -143,6 +146,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   private spinnerPosition: SpinnerPosition = { top: 0, left: 0, visible: false };
   private isInternalValueUpdate = false;
   private hasFocus = false;
+  private suggestionDropdownHidden = false;
   private suppressAutoFocusSelection = false;
   private previousCommittedValue = this.value;
   private spinnerRepeatTimeout?: number;
@@ -164,7 +168,35 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   protected firstUpdated(): void {
     this.controlElement?.addEventListener('scroll', this.#onControlScroll, { passive: true });
     this.#syncControlValue();
-    this.#recomputeState('selection');
+    this.#recomputeState('selection', this.value, false);
+  }
+
+  protected willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
+    if (changedProperties.has('disabled') && this.disabled) {
+      this.#stopSpinnerRepeat(false);
+      this.hasFocus = false;
+      this.suggestionDropdownHidden = true;
+      this.pendingInputSnapshot = undefined;
+      this.spinnerPosition = { top: 0, left: 0, visible: false };
+    }
+
+    if (
+      changedProperties.has('value') ||
+      changedProperties.has('decimalSeparator') ||
+      changedProperties.has('step') ||
+      changedProperties.has('stepDecimal') ||
+      changedProperties.has('allowedValues') ||
+      changedProperties.has('tokenPattern') ||
+      changedProperties.has('min') ||
+      changedProperties.has('max')
+    ) {
+      this.#recomputeState(
+        changedProperties.has('value') && !this.isInternalValueUpdate ? 'input' : 'selection',
+        this.value,
+        false,
+      );
+      this.isInternalValueUpdate = false;
+    }
   }
 
   protected updated(changedProperties: Map<PropertyKey, unknown>): void {
@@ -179,8 +211,6 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       changedProperties.has('max')
     ) {
       this.#syncControlValue();
-      this.#recomputeState(changedProperties.has('value') && !this.isInternalValueUpdate ? 'input' : 'selection');
-      this.isInternalValueUpdate = false;
     }
 
     if (changedProperties.has('multiline')) {
@@ -188,7 +218,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       this.updateComplete.then(() => {
         this.controlElement?.addEventListener('scroll', this.#onControlScroll, { passive: true });
         this.#syncControlValue();
-        this.#recomputeState('selection');
+        this.#recomputeState('selection', this.value, false);
       });
     }
 
@@ -382,6 +412,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     return (
       this.#usesSuggestionDropdown() &&
       this.hasFocus &&
+      !this.suggestionDropdownHidden &&
       !this.disabled &&
       this.#getReadonlyMode() !== 'all' &&
       this.#getAllowedValues().length > 0 &&
@@ -694,11 +725,13 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     return getFiniteOptionalNumber(this.max);
   }
 
-  #recomputeState(cause: TokenAwareInputCause, previousValue = this.value) {
+  #recomputeState(cause: TokenAwareInputCause, previousValue = this.value, requestUpdate = true) {
     this.parsedNumbers = this.#parseTokens(this.value);
     this.activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     emitBubbledEvent(this, 'token-aware-input-state-change', this.#createDetail(previousValue, cause));
-    this.requestUpdate();
+    if (requestUpdate) {
+      this.requestUpdate();
+    }
   }
 
   #updateSelectionFromControl() {
@@ -715,9 +748,16 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   }
 
   #onInput = (event: Event) => {
+    if (this.disabled) {
+      event.stopPropagation();
+      this.#syncControlValue();
+      return;
+    }
+
     const input = event.currentTarget as TextControl;
     const previousValue = this.value;
     const initialNextValue = input.value;
+    this.#showSuggestionDropdown();
 
     if (!this.#isAcceptedInputValue(initialNextValue, previousValue)) {
       input.value = previousValue;
@@ -761,11 +801,20 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   };
 
   #onNativeChange = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#emitCommit('commit');
   };
 
   #onFocus = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.hasFocus = true;
+    this.#showSuggestionDropdown();
     if (!this.suppressAutoFocusSelection) {
       this.#focusFirstNumber();
     }
@@ -777,6 +826,10 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   };
 
   #onBlur = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.hasFocus = false;
     this.suppressAutoFocusSelection = false;
     this.#updateSelectionFromControl();
@@ -785,6 +838,10 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   };
 
   #onSelectionEvent = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#queueSelectionSync('selection');
   };
 
@@ -795,6 +852,11 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     }
 
     this.#replaceActiveTokenValue(token, value);
+
+    if (this.hideOnSelect) {
+      this.suggestionDropdownHidden = true;
+      this.requestUpdate();
+    }
   }
 
   #onControlScroll = () => {
@@ -802,7 +864,12 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   };
 
   #onControlPointerDown = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.suppressAutoFocusSelection = true;
+    this.#showSuggestionDropdown();
   };
 
   #onBeforeInput = (event: InputEvent) => {
@@ -816,6 +883,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       return;
     }
 
+    this.#showSuggestionDropdown();
     this.#updateSelectionFromControl();
     this.activeNumber = getActiveParsedToken(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     this.pendingInputSnapshot = this.#createInputSnapshot();
@@ -829,6 +897,19 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
       event.preventDefault();
     }
   };
+
+  #showSuggestionDropdown(): void {
+    if (this.disabled) {
+      return;
+    }
+
+    if (!this.suggestionDropdownHidden) {
+      return;
+    }
+
+    this.suggestionDropdownHidden = false;
+    this.requestUpdate();
+  }
 
   #onKeyDown = (event: KeyboardEvent) => {
     if (this.disabled || this.#getReadonlyMode() === 'all') {
@@ -951,15 +1032,27 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   }
 
   #preventControlBlur = (event: MouseEvent) => {
+    if (this.disabled) {
+      return;
+    }
+
     event.preventDefault();
   };
 
   #onSpinnerStepUp = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#stepActiveNumber(1, 'spinner');
     this.#emitCommit('commit');
   };
 
   #onSpinnerStepDown = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#stepActiveNumber(-1, 'spinner');
     this.#emitCommit('commit');
   };
@@ -1028,7 +1121,7 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
     const hadRepeatDirection = this.spinnerRepeatDirection !== undefined;
     this.spinnerRepeatDirection = undefined;
 
-    if (emitCommit && hadRepeatDirection) {
+    if (emitCommit && hadRepeatDirection && !this.disabled) {
       this.#emitCommit('commit');
     }
   }
@@ -1180,6 +1273,10 @@ export class CaskoUiTokenAwareInputElement extends LitElement {
   }
 
   #emitCommit(cause: TokenAwareInputCause) {
+    if (this.disabled) {
+      return;
+    }
+
     const detail = this.#createDetail(this.previousCommittedValue, cause);
     this.previousCommittedValue = this.value;
     emitBubbledEvent(this, 'token-aware-input-commit', detail);

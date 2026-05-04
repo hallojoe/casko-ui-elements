@@ -22,11 +22,16 @@ Or import individual elements:
 import '@casko/ui-elements/selection-box';
 import '@casko/ui-elements/angle-input';
 import '@casko/ui-elements/anchor-point-input';
+import '@casko/ui-elements/circular-decoration-input';
 import '@casko/ui-elements/circular-input';
+import '@casko/ui-elements/circular-text-input';
 import '@casko/ui-elements/transform-box';
 import '@casko/ui-elements/drag-box';
 import '@casko/ui-elements/drag-scroll';
+import '@casko/ui-elements/fill-input';
 import '@casko/ui-elements/number-aware-input';
+import '@casko/ui-elements/stroke-input';
+import '@casko/ui-elements/text-input';
 import '@casko/ui-elements/token-aware-input';
 ```
 
@@ -274,14 +279,12 @@ interface AnchorPointInputTriggerDetail extends AnchorPointInputChangeDetail {
   radius-snap-step="10"
   height-snap-step="5"
   value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
-  gap-handle-path="M -5 -5 H 5 V 5 H -5 Z"
-  border-radius-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
   start-angle-handle-path="M 0 -6 L 5 5 L 0 2 L -5 5 Z"></circular-input>
 
 <circular-input
   gap="10"
   border-radius="6"
-  hidden-controls="radius,height,gap"></circular-input>
+  hidden-controls="radius,height"></circular-input>
 
 <script type="module">
   const editor = document.querySelector('#sector-editor');
@@ -304,16 +307,11 @@ Attributes/properties:
 - `sectors`: `CircularInputSector[]`, assigned as a property; each sector has `value`, `radius`, `height`, and optional `label`
 - `total-value`: total value used when value handles are dragged, default `100`
 - `start-angle`: start angle in degrees, default `-90`; also editable with the outer rotation handle
-- `value-handle-anchor`: `'start' | 'center' | 'end'`, default `'start'`; start/end anchors make value handles edit sector boundaries directly
-- `allow-crossing`: allows value handles to cross sibling positions, default `true`
-- `hidden-controls`: hides control types; accepts an array, JSON array, or comma-separated values from `'value' | 'radius' | 'height' | 'gap' | 'border-radius' | 'start-angle'`
-- `gap`: global sector gap passed to `@casko/circular-sector`, default `0`; edited by the outermost dotted bowed control unless hidden
-- `gap-step`: keyboard step for the global gap handle, default `1`
-- `gap-max`: maximum global gap value, default `48`
-- `border-radius`: global rounded-corner value passed to `@casko/circular-sector`, default `0`; edited by a dotted bowed control outside the rotation ring unless hidden
-- `border-radius-step`: keyboard step for the global border-radius handle, default `1`
-- `border-radius-max`: maximum global border-radius value, default `48`
-- `value-handle-path`, `radius-handle-path`, `height-handle-path`, `gap-handle-path`, `border-radius-handle-path`, `start-angle-handle-path`: optional SVG path data centered on `0,0`; empty uses the default circle for that handle type
+- `allow-crossing`: retained for compatibility; boundary handles preserve sector order so total distribution remains stable
+- `hidden-controls`: hides control types; accepts an array, JSON array, or comma-separated values from `'value' | 'radius' | 'height' | 'start-angle'`
+- `gap`: global sector gap passed to `@casko/circular-sector`, default `0`; set as an attribute/property from outside the component
+- `border-radius`: global rounded-corner value passed to `@casko/circular-sector`, default `0`; set as an attribute/property from outside the component
+- `value-handle-path`, `radius-handle-path`, `height-handle-path`, `start-angle-handle-path`: optional SVG path data centered on `0,0`; empty uses the default circle for that handle type
 - `keyboard-step`: keyboard step for value handles, default `1`
 - `radius-step`: keyboard step for radius and height handles, default `5`
 - `value-snap-step`: value-handle drag snap and keyboard step in total-value units, default `0`
@@ -321,6 +319,8 @@ Attributes/properties:
 - `radius-snap-step`: radius-handle drag snap and keyboard step, default `0`
 - `height-snap-step`: height-handle drag snap and keyboard step, default `0`
 - `disabled`: disables pointer and keyboard changes
+
+Clicking or focusing a sector makes it active and renders that sector's radius and height handles last, which keeps overlapped handles reachable. Value handles are boundary based: every sector renders a handle at its start and end edge. The demo keeps `values`, `radiuses`, `heights`, `gap`, and `border-radius` in `number-aware-input` fields and uses `@casko/queues` `Rotation` to repeat shorter number lists across all sectors.
 
 Events:
 
@@ -335,7 +335,7 @@ interface CircularInputSector {
 interface CircularInputChangeDetail {
   sectors: CircularInputSector[];
   index: number;
-  field: 'value' | 'radius' | 'height' | 'gap' | 'border-radius' | 'start-angle';
+  field: 'value' | 'radius' | 'height' | 'start-angle';
   source: 'pointer' | 'keyboard';
   gap: number;
   borderRadius: number;
@@ -345,6 +345,152 @@ interface CircularInputChangeDetail {
 
 - `circular-input-change`
 - `circular-input-commit`
+
+## `circular-decoration-input`
+
+`circular-decoration-input` renders circular sectors and edits the selected sector fill/stroke decoration.
+
+### Example
+
+```html
+<circular-decoration-input
+  id="sector-decoration"
+  gap="8"
+  border-radius="8"></circular-decoration-input>
+
+<script type="module">
+  const editor = document.querySelector('#sector-decoration');
+
+  editor.sectors = [
+    { value: 24, radius: 112, height: 46, label: 'A' },
+    { value: 32, radius: 124, height: 54, label: 'B' },
+    { value: 18, radius: 96, height: 36, label: 'C' },
+    { value: 26, radius: 132, height: 58, label: 'D' },
+  ];
+
+  editor.addEventListener('circular-decoration-input-change', (event) => {
+    console.log(event.detail.selectedIndexes, event.detail.value);
+  });
+</script>
+```
+
+Attributes/properties:
+
+- `sectors`: `CircularDecorationInputSector[]`, assigned as a property; each sector has `value`, `radius`, `height`, and optional `label`
+- `value`: `CircularDecorationInputValue`, an array of `{ fill: FillInputValue, stroke: StrokeInputValue }` indexed to `sectors`
+- `selectedIndexes`: selected sector indexes, assigned as a property
+- `total-value`, `start-angle`, `gap`, and `border-radius`: circular layout settings matching `circular-input`
+- `disabled` / `readonly`: prevent selection and editing
+- `hide-on-select`: forwarded to the paint inputs, default `true`
+
+Interaction:
+
+- Click selects one sector.
+- Click the selected sector again to deselect it.
+- Shift/Ctrl/Cmd-click toggles sectors for multi-select.
+- Arrow keys move sector focus; Enter/Space selects, and Escape clears selection.
+- Fill/stroke forms are always visible below the circular control and disabled until at least one sector is selected.
+- Multi-select editing shows default paint controls and applies edits to every selected sector.
+
+Events:
+
+```ts
+interface CircularDecorationInputSectorDecoration {
+  fill: FillInputValue;
+  stroke: StrokeInputValue;
+}
+
+type CircularDecorationInputValue = CircularDecorationInputSectorDecoration[];
+```
+
+- `input`
+- `circular-decoration-input-change`
+- `circular-decoration-input-commit`
+- `circular-decoration-input-selection-change`
+
+## `circular-text-input`
+
+`circular-text-input` renders circular sectors and edits text content and placement for selected sectors.
+
+### Example
+
+```html
+<circular-text-input
+  id="sector-text"
+  gap="8"
+  border-radius="8"></circular-text-input>
+
+<script type="module">
+  const editor = document.querySelector('#sector-text');
+
+  editor.sectors = [
+    { value: 24, radius: 112, height: 46, label: 'A' },
+    { value: 32, radius: 124, height: 54, label: 'B' },
+  ];
+
+  editor.value = [
+    {
+      text: 'Alpha',
+      mode: 'point',
+      anchor: 'block-center-inline-center',
+      offsetX: 0,
+      offsetY: 0,
+      radialOffset: 0,
+    },
+    {
+      text: 'Beta',
+      mode: 'path',
+      anchor: 'block-start-inline-center',
+      offsetX: 0,
+      offsetY: 0,
+      radialOffset: 0,
+    },
+  ];
+
+  editor.addEventListener('circular-text-input-change', (event) => {
+    console.log(event.detail.selectedIndexes, event.detail.value);
+  });
+</script>
+```
+
+Attributes/properties:
+
+- `sectors`: array of `{ value, radius, height, label? }`
+- `value`: `CircularTextInputValue`, an array of text settings indexed to `sectors`
+- `selectedIndexes`: selected sector indexes, assigned as a property
+- `total-value`, `start-angle`, `gap`, and `border-radius`: circular layout settings matching `circular-input`
+- `disabled` / `readonly`: prevent selection and editing
+- `hide-on-select`: forwarded to child text controls, default `true`
+
+Value items:
+
+```ts
+interface CircularTextInputValueItem {
+  text: string;
+  mode: 'point' | 'path';
+  anchor: AnchorPointValue;
+  offsetX: number;
+  offsetY: number;
+  radialOffset: number;
+  textAttributes: TextInputValue;
+}
+```
+
+Interaction:
+
+- Click selects one sector.
+- Shift/Ctrl/Cmd-click toggles sectors for multi-select.
+- Clicking empty SVG space or outside the component clears selection.
+- Arrow keys move focus between sectors; `Home` / `End` jump to first or last.
+- `Escape` clears selection.
+- Multi-select shows the first selected sector settings and applies edits to all selected sectors.
+
+Events:
+
+- `input`
+- `circular-text-input-change`
+- `circular-text-input-commit`
+- `circular-text-input-selection-change`
 
 ## `selection-box`
 
@@ -499,6 +645,8 @@ Attributes/properties:
 - `readonly-mode`: `'none' | 'all' | 'text' | 'number'`, default `'none'`
 - `readonly`: compatibility alias for `readonly-mode="all"`
 - `show-spinner`: shows step controls for the active token
+- `control-position`: `'default' | 'start' | 'end'`, default `'default'`; `default` follows the active token with the configured offset, while `start` and `end` pin the controls to the input edge
+- `hide-on-select`: hides suggestion dropdowns after a suggestion is selected, default `true`
 - `min` / `max`: optional numeric clamp for stepping
 
 Pair-lock behavior:
@@ -514,6 +662,160 @@ Readonly behavior:
 - `all`: blocks all editing and stepping.
 - `text`: only allows digits, sign characters, the active decimal separator, and whitespace.
 - `number`: allows text edits outside numeric tokens but blocks changes to the parsed numbers and disables numeric stepping.
+
+## `fill-input`
+
+`fill-input` edits the common SVG fill attributes with compact controls.
+
+### Features
+
+- Color picker for `fill`.
+- Numeric stepping for `fill-opacity`.
+- Constrained dropdown token input for `fill-rule`.
+- The public `value` object uses the SVG attribute names as keys.
+
+### Example
+
+```html
+<fill-input
+  fill="#0f5449"
+  fill-opacity="0.8"
+  fill-rule="evenodd"></fill-input>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `value`: object with `fill`, `fill-opacity`, and `fill-rule`
+- `fill`: color picker value in `#rrggbb` format
+- `fill-opacity`: clamped number text from `0` to `1`, default `1`
+- `fill-rule`: `'nonzero' | 'evenodd'`, default `'nonzero'`
+- `disabled` / `readonly`: prevent editing
+- `hide-on-select`: hides internal dropdowns after a suggestion is selected, default `true`
+
+Events:
+
+- `input`
+- `fill-input-change`
+- `fill-input-commit`
+
+```ts
+interface FillInputChangeDetail {
+  value: FillInputValue;
+  previousValue: FillInputValue;
+  changedProperty: keyof FillInputValue;
+  source: 'field';
+}
+```
+
+## `text-input`
+
+`text-input` edits SVG text layout and anchoring attributes.
+
+### Features
+
+- Numeric controls for rotation, baseline shift, and forced text length.
+- Dropdown token inputs for anchor, baseline, and length adjustment options.
+- Empty `textLength` means no forced text width.
+- The public `value` object uses the SVG attribute names as keys.
+
+### Example
+
+```html
+<text-input
+  text-anchor="middle"
+  dominant-baseline="middle"
+  lengthAdjust="spacing"></text-input>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `value`: object with `rotate`, `text-anchor`, `dominant-baseline`, `alignment-baseline`, `baseline-shift`, `lengthAdjust`, and `textLength`
+- `rotate`: numeric rotation text
+- `text-anchor`: `'start' | 'middle' | 'end'`, default `'start'`
+- `dominant-baseline`: common SVG baseline value, default `'auto'`
+- `alignment-baseline`: common SVG baseline value, default `'auto'`
+- `baseline-shift`: numeric text or `'baseline' | 'sub' | 'super'`
+- `lengthAdjust`: `'spacing' | 'spacingAndGlyphs'`, default `'spacing'`
+- `textLength`: optional numeric text; empty means omitted
+- `disabled`: keeps all controls visible but prevents edits and commit events
+- `readonly`: prevents editing while preserving readonly focus behavior
+- `hide-on-select`: hides internal dropdowns after a suggestion is selected, default `true`
+
+Events:
+
+- `input`
+- `text-input-change`
+- `text-input-commit`
+
+```ts
+interface TextInputChangeDetail {
+  value: TextInputValue;
+  previousValue: TextInputValue;
+  changedProperty: keyof TextInputValue;
+  source: 'field';
+}
+```
+
+## `stroke-input`
+
+`stroke-input` edits the common SVG stroke attributes with a compact preset-first UI.
+
+### Features
+
+- Dash `type` presets cover `solid`, `dashed`, `dotted`, `dash-dot`, and `custom`.
+- Numeric fields use `number-aware-input`, so users can step values instead of retyping them.
+- Choice fields use constrained token inputs instead of native selects.
+- `stroke-dasharray` accepts `none` or a space/comma-separated number list.
+- The public `value` object uses the SVG attribute names as keys.
+
+### Example
+
+```html
+<stroke-input
+  type="dashed"
+  stroke="#0f5449"
+  stroke-width="3"
+  stroke-linecap="round"
+  vector-effect="non-scaling-stroke"></stroke-input>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `value`: object with `stroke`, `stroke-width`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `stroke-miterlimit`, `stroke-dasharray`, `stroke-dashoffset`, and `vector-effect`
+- `type`: `'solid' | 'dashed' | 'dotted' | 'dash-dot' | 'custom'`, default `'solid'`
+- `stroke`: color picker value in `#rrggbb` format
+- `stroke-width`: non-negative number text, default `2`
+- `stroke-opacity`: clamped number text from `0` to `1`, default `1`
+- `stroke-linecap`: `'butt' | 'round' | 'square'`, default `'butt'`
+- `stroke-linejoin`: `'miter' | 'round' | 'bevel'`, default `'miter'`
+- `stroke-miterlimit`: non-negative number text, default `4`
+- `stroke-dasharray`: `none` or number list, default `none`
+- `stroke-dashoffset`: non-negative number text, default `0`
+- `vector-effect`: `'none' | 'non-scaling-stroke'`, default `'none'`
+- `disabled`: keeps all controls visible but prevents edits and commit events
+- `readonly`: prevents editing while preserving readonly focus behavior
+- `hide-on-select`: hides internal dropdowns after a suggestion is selected, default `true`
+
+Events:
+
+- `input`
+- `stroke-input-change`
+- `stroke-input-commit`
+
+```ts
+interface StrokeInputChangeDetail {
+  value: StrokeInputValue;
+  previousValue: StrokeInputValue;
+  changedProperty: keyof StrokeInputValue | 'type';
+  source: 'field' | 'preset';
+}
+```
 
 ## `token-aware-input`
 
@@ -560,6 +862,7 @@ Suggestion dropdown:
 - `allowed-values`: list of allowed string token values
 - `token-pattern`: full-value regex with exactly one editable capture group
 - `suggestion-mode`: `'none' | 'dropdown'`, default `'none'`
+- `hide-on-select`: hides the suggestion dropdown after a suggestion is selected, default `true`
 - `readonly-mode`: `'none' | 'all' | 'text' | 'number'`, default `'none'`
 - `readonly`: compatibility alias for `readonly-mode="all"`
 - `show-spinner`: shows step controls for the active token when dropdown suggestions are not enabled
@@ -804,10 +1107,6 @@ circular-input {
   --circular-input-height-handle-fill: #ffffff;
   --circular-input-height-handle-stroke: #d8682d;
   --circular-input-height-handle-stroke-width: 2;
-  --circular-input-gap-handle-fill: #365c8d;
-  --circular-input-gap-handle-stroke-width: 2;
-  --circular-input-border-radius-handle-fill: #8b5cf6;
-  --circular-input-border-radius-handle-stroke-width: 2;
   --circular-input-start-angle-handle-fill: #d8682d;
   --circular-input-start-angle-handle-stroke-width: 2;
   --circular-input-focus-ring-stroke-width: 3;

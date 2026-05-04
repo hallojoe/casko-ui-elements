@@ -39,6 +39,7 @@ export type NumberAwareInputCause =
 
 export type NumberAwareInputReadonlyMode = InputReadonlyMode;
 export type NumberAwareInputPairLockMode = InputPairLockMode;
+export type NumberAwareInputControlPosition = 'default' | 'start' | 'end';
 export type NumberAwareInputTokenMode = 'number' | 'values' | 'pattern-values';
 export type NumberAwareInputSuggestionMode = 'none' | 'dropdown';
 export type ParsedNumber = import('./input-shared').ParsedNumber;
@@ -105,6 +106,12 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   @property({ type: Boolean, attribute: 'show-spinner', reflect: true })
   showSpinner = true;
 
+  @property({ type: String, attribute: 'control-position', reflect: true })
+  controlPosition: NumberAwareInputControlPosition = 'end';
+
+  @property({ type: Boolean, attribute: 'hide-on-select', reflect: true })
+  hideOnSelect = true;
+
   @query('#control')
   private controlElement?: TextControl;
 
@@ -118,6 +125,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   private spinnerPosition: SpinnerPosition = { top: 0, left: 0, visible: false };
   private isInternalValueUpdate = false;
   private hasFocus = false;
+  private suggestionDropdownHidden = false;
   private suppressAutoFocusSelection = false;
   private previousCommittedValue = this.value;
   private spinnerRepeatTimeout?: number;
@@ -139,7 +147,32 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   protected firstUpdated(): void {
     this.controlElement?.addEventListener('scroll', this.#onControlScroll, { passive: true });
     this.#syncControlValue();
-    this.#recomputeState('selection');
+    this.#recomputeState('selection', this.value, false);
+  }
+
+  protected willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
+    if (changedProperties.has('disabled') && this.disabled) {
+      this.#stopSpinnerRepeat(false);
+      this.hasFocus = false;
+      this.pendingInputSnapshot = undefined;
+      this.spinnerPosition = { top: 0, left: 0, visible: false };
+    }
+
+    if (
+      changedProperties.has('value') ||
+      changedProperties.has('decimalSeparator') ||
+      changedProperties.has('step') ||
+      changedProperties.has('stepDecimal') ||
+      changedProperties.has('min') ||
+      changedProperties.has('max')
+    ) {
+      this.#recomputeState(
+        changedProperties.has('value') && !this.isInternalValueUpdate ? 'input' : 'selection',
+        this.value,
+        false,
+      );
+      this.isInternalValueUpdate = false;
+    }
   }
 
   protected updated(changedProperties: Map<PropertyKey, unknown>): void {
@@ -152,8 +185,6 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       changedProperties.has('max')
     ) {
       this.#syncControlValue();
-      this.#recomputeState(changedProperties.has('value') && !this.isInternalValueUpdate ? 'input' : 'selection');
-      this.isInternalValueUpdate = false;
     }
 
     if (changedProperties.has('multiline')) {
@@ -161,7 +192,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       this.updateComplete.then(() => {
         this.controlElement?.addEventListener('scroll', this.#onControlScroll, { passive: true });
         this.#syncControlValue();
-        this.#recomputeState('selection');
+        this.#recomputeState('selection', this.value, false);
       });
     }
 
@@ -199,6 +230,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
             id="control"
             class="control input"
             type="text"
+            autocomplete="off"
             .value=${this.value}
             placeholder=${this.placeholder}
             ?disabled=${this.disabled}
@@ -291,6 +323,16 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
 
   #getPairLockMode(): NumberAwareInputPairLockMode {
     return sanitizePairLockMode(this.pairLockMode);
+  }
+
+  #getControlPosition(): NumberAwareInputControlPosition {
+    switch (this.controlPosition) {
+      case 'start':
+      case 'end':
+        return this.controlPosition;
+      default:
+        return 'default';
+    }
   }
 
   #usesNumericMode(): boolean {
@@ -479,11 +521,13 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     return getFiniteOptionalNumber(this.max);
   }
 
-  #recomputeState(cause: NumberAwareInputCause, previousValue = this.value) {
+  #recomputeState(cause: NumberAwareInputCause, previousValue = this.value, requestUpdate = true) {
     this.parsedNumbers = this.#parseAllNumbers(this.value);
     this.activeNumber = getActiveParsedNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     emitBubbledEvent(this, 'number-aware-input-state-change', this.#createDetail(previousValue, cause));
-    this.requestUpdate();
+    if (requestUpdate) {
+      this.requestUpdate();
+    }
   }
 
   #updateSelectionFromControl() {
@@ -500,9 +544,16 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   }
 
   #onInput = (event: Event) => {
+    if (this.disabled) {
+      event.stopPropagation();
+      this.#syncControlValue();
+      return;
+    }
+
     const input = event.currentTarget as TextControl;
     const previousValue = this.value;
     const initialNextValue = input.value;
+    this.#showSuggestionDropdown();
 
     if (!this.#isAcceptedInputValue(initialNextValue, previousValue)) {
       input.value = previousValue;
@@ -546,11 +597,20 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #onNativeChange = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#emitCommit('commit');
   };
 
   #onFocus = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.hasFocus = true;
+    this.#showSuggestionDropdown();
     if (!this.suppressAutoFocusSelection) {
       this.#focusFirstNumber();
     }
@@ -562,6 +622,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #onBlur = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.hasFocus = false;
     this.suppressAutoFocusSelection = false;
     this.#updateSelectionFromControl();
@@ -570,11 +634,20 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #onSelectionEvent = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#queueSelectionSync('selection');
   };
 
   #selectSuggestionValue(value: string) {
     void value;
+
+    if (this.hideOnSelect) {
+      this.suggestionDropdownHidden = true;
+      this.requestUpdate();
+    }
   }
 
   #onControlScroll = () => {
@@ -582,7 +655,12 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   };
 
   #onControlPointerDown = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.suppressAutoFocusSelection = true;
+    this.#showSuggestionDropdown();
   };
 
   #onBeforeInput = (event: InputEvent) => {
@@ -596,6 +674,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       return;
     }
 
+    this.#showSuggestionDropdown();
     this.#updateSelectionFromControl();
     this.activeNumber = getActiveParsedNumber(this.parsedNumbers, this.selectionStart, this.selectionEnd);
     this.pendingInputSnapshot = this.#createInputSnapshot();
@@ -609,6 +688,19 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       event.preventDefault();
     }
   };
+
+  #showSuggestionDropdown(): void {
+    if (this.disabled) {
+      return;
+    }
+
+    if (!this.suggestionDropdownHidden) {
+      return;
+    }
+
+    this.suggestionDropdownHidden = false;
+    this.requestUpdate();
+  }
 
   #onKeyDown = (event: KeyboardEvent) => {
     if (this.disabled || this.#getReadonlyMode() === 'all') {
@@ -726,15 +818,27 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   }
 
   #preventControlBlur = (event: MouseEvent) => {
+    if (this.disabled) {
+      return;
+    }
+
     event.preventDefault();
   };
 
   #onSpinnerStepUp = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#stepActiveNumber(1, 'spinner');
     this.#emitCommit('commit');
   };
 
   #onSpinnerStepDown = () => {
+    if (this.disabled) {
+      return;
+    }
+
     this.#stepActiveNumber(-1, 'spinner');
     this.#emitCommit('commit');
   };
@@ -803,7 +907,7 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     const hadRepeatDirection = this.spinnerRepeatDirection !== undefined;
     this.spinnerRepeatDirection = undefined;
 
-    if (emitCommit && hadRepeatDirection) {
+    if (emitCommit && hadRepeatDirection && !this.disabled) {
       this.#emitCommit('commit');
     }
   }
@@ -893,6 +997,10 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
   }
 
   #emitCommit(cause: NumberAwareInputCause) {
+    if (this.disabled) {
+      return;
+    }
+
     const detail = this.#createDetail(this.previousCommittedValue, cause);
     this.previousCommittedValue = this.value;
     emitBubbledEvent(this, 'number-aware-input-commit', detail);
@@ -984,8 +1092,12 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
     );
     const spinnerWidth = spinnerButtonSize;
     const spinnerHeight = spinnerButtonSize * 2 + spinnerGap;
-    const relativeLeft =
-      tokenRect.right - measureRect.left + paddingLeft - control.scrollLeft + spinnerOffset;
+    const controlPosition = this.#getControlPosition();
+    const relativeLeft = controlPosition === 'start'
+      ? spinnerInset
+      : controlPosition === 'end'
+        ? controlRect.width - spinnerWidth - spinnerInset
+        : tokenRect.right - measureRect.left + paddingLeft - control.scrollLeft + spinnerOffset;
     const relativeTop =
       tokenRect.top - measureRect.top + paddingTop - control.scrollTop + tokenRect.height / 2 - spinnerHeight / 2;
     const maxLeft = Math.max(0, controlRect.width - spinnerWidth - spinnerInset);
@@ -1010,13 +1122,13 @@ export class CaskoUiNumberAwareInputElement extends LitElement {
       --number-aware-input-placeholder-color: rgba(23, 50, 45, 0.52);
       --number-aware-input-focus-ring-size: 3px;
       --number-aware-input-focus-ring-opacity: 16%;
-      --number-aware-input-spinner-background: rgba(15, 84, 73, 0.96);
-      --number-aware-input-spinner-color: #ffffff;
+      --number-aware-input-spinner-background: transparent;
+      --number-aware-input-spinner-color: currentcolor;
       --number-aware-input-spinner-shadow: 0 10px 24px rgba(15, 84, 73, 0.2);
-      --number-aware-input-spinner-button-size: 19px;
+      --number-aware-input-spinner-button-size: 12px;
       --number-aware-input-spinner-gap: 0px;
-      --number-aware-input-spinner-radius: 0;
-      --number-aware-input-spinner-offset: 8px;
+      --number-aware-input-spinner-radius: 50%;
+      --number-aware-input-spinner-offset: 4px;
       --number-aware-input-spinner-inset: 4px;
       --number-aware-input-suggestions-max-height: 180px;
       --number-aware-input-suggestions-background: #ffffff;

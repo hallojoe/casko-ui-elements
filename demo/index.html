@@ -196,25 +196,36 @@
         --number-aware-input-radius: 8px;
       }
 
+      stroke-input {
+        --stroke-input-radius: 8px;
+      }
+
+      fill-input {
+        --fill-input-radius: 8px;
+      }
+
+      text-input {
+        --text-input-radius: 8px;
+      }
+
+      .fill-preview,
+      .text-preview,
+      .stroke-preview {
+        width: 100%;
+        min-height: 150px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 84, 73, 0.14);
+        background:
+          linear-gradient(rgba(15, 84, 73, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 84, 73, 0.07) 1px, transparent 1px),
+          #ffffff;
+        background-size: 20px 20px;
+      }
+
       circular-sector-svg {
         width: 100%;
         aspect-ratio: 1;
         color: #17322d;
-      }
-
-      .circular-input-demo {
-        display: grid;
-        gap: 14px;
-      }
-
-      .circular-input-stage {
-        display: grid;
-        place-items: center;
-        min-width: 0;
-      }
-
-      .circular-input-stage circular-input {
-        --circular-input-size: min(320px, 100%);
       }
 
       .angle-demo-grid {
@@ -610,45 +621,6 @@
                 <circular-sector-svg id="sector-rectangular-demo"></circular-sector-svg>
               </div>
             </div>
-          </div>
-        </article>
-
-        <article class="panel">
-          <h2>Circular Input</h2>
-          <p class="hint">
-            This POC edits simplified circular sector value, radius, and height data. Drag the
-            outer-center handles around the circle to redistribute values, or drag the two handles
-            on each radial line to adjust radius and height. Rotation is the first outer ring,
-            with rounded corners and gap controls on dotted bows outside it.
-          </p>
-          <div class="circular-input-demo">
-            <div class="circular-input-stage">
-              <circular-input id="circular-input-demo"></circular-input>
-            </div>
-            <div class="circular-input-stage">
-              <circular-input
-                id="circular-input-start-demo"
-                allow-crossing="false"
-                gap="8"
-                border-radius="8"
-                value-snap-step="5"
-                rotate-snap-step="15"
-                radius-snap-step="10"
-                height-snap-step="5"
-                value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
-                gap-handle-path="M -5 -5 H 5 V 5 H -5 Z"
-                border-radius-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
-                start-angle-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
-                ></circular-input>
-            </div>
-            <div class="circular-input-stage">
-              <circular-input
-                id="circular-input-hidden-demo"
-                gap="10"
-                border-radius="6"
-                hidden-controls="radius,height,gap"></circular-input>
-            </div>
-            <div class="log" id="circular-input-log">Waiting for circular input...</div>
           </div>
         </article>
 
@@ -1404,6 +1376,24 @@
               step="1"
               step-decimal="0.25"></number-aware-input>
 
+            <p class="subtle">Pin spinner controls to the start edge</p>
+            <number-aware-input
+              id="number-control-start-demo"
+              data-number-label="control-start"
+              control-position="start"
+              value="12 24 48"
+              step="1"
+              step-decimal="0.25"></number-aware-input>
+
+            <p class="subtle">Pin spinner controls to the end edge</p>
+            <number-aware-input
+              id="number-control-end-demo"
+              data-number-label="control-end"
+              control-position="end"
+              value="5 10 20"
+              step="1"
+              step-decimal="0.25"></number-aware-input>
+
             <p class="subtle">Pair lock keeps adjacent values in ratio during stepping, while direct edits stay independent by default</p>
             <number-aware-input
               id="number-pair-lock-demo"
@@ -1453,6 +1443,123 @@
               <code>101,206</code> is treated as two numeric tokens.
             </p>
             <div class="log" id="number-log">Waiting for numeric input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Text Input</h2>
+          <p class="hint">
+            Control SVG text rotation, anchoring, baseline alignment, and length behavior.
+          </p>
+          <div class="stack">
+            <text-input
+              id="text-input-demo"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              alignment-baseline="baseline"
+              baseline-shift="0"
+              lengthAdjust="spacing"></text-input>
+
+            <svg class="text-preview" viewBox="0 0 360 150" role="img" aria-label="Text preview">
+              <line x1="20" y1="78" x2="340" y2="78" stroke="rgba(15,84,73,.24)" stroke-dasharray="4 4"></line>
+              <line x1="180" y1="20" x2="180" y2="130" stroke="rgba(216,104,45,.24)" stroke-dasharray="4 4"></line>
+              <text
+                id="text-preview-text"
+                x="180"
+                y="78"
+                dx="0"
+                dy="0"
+                rotate="0"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                alignment-baseline="baseline"
+                baseline-shift="0"
+                lengthAdjust="spacing"
+                fill="#0f5449"
+                font-size="34"
+                font-family="Segoe UI, sans-serif"
+                font-weight="700">Text Input</text>
+            </svg>
+
+            <div class="log" id="text-log">Waiting for text input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Fill Input</h2>
+          <p class="hint">
+            Edit SVG fill color, opacity, and fill rule with compact controls.
+          </p>
+          <div class="stack">
+            <fill-input
+              id="fill-input-demo"
+              fill="#0f5449"
+              fill-opacity="0.82"
+              fill-rule="evenodd"></fill-input>
+
+            <p class="subtle">Disabled fill input remains visible but inert</p>
+            <fill-input
+              disabled
+              fill="#365c8d"
+              fill-opacity="0.62"
+              fill-rule="nonzero"></fill-input>
+
+            <svg class="fill-preview" viewBox="0 0 360 150" role="img" aria-label="Fill preview">
+              <path
+                id="fill-preview-path"
+                d="M74 24 H286 V126 H74 Z M128 58 H232 V104 H128 Z"
+                fill="#0f5449"
+                fill-opacity="0.82"
+                fill-rule="evenodd"
+                stroke="#17322d"
+                stroke-width="2"></path>
+            </svg>
+
+            <div class="log" id="fill-log">Waiting for fill input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Stroke Input</h2>
+          <p class="hint">
+            Pick a dash type first, then fine-tune the SVG stroke attributes with compact fields.
+          </p>
+          <div class="stack">
+            <stroke-input
+              id="stroke-input-demo"
+              type="dashed"
+              stroke="rgba(0, 0, 0, .5)"
+              stroke-width="4"
+              stroke-linecap="round"
+              hide-on-select="true"
+              vector-effect="non-scaling-stroke"></stroke-input>
+
+            <p class="subtle">Disabled stroke input remains visible but inert</p>
+            <stroke-input
+              disabled
+              type="dotted"
+              stroke="#365c8d"
+              stroke-width="3"
+              stroke-linecap="round"
+              vector-effect="non-scaling-stroke"></stroke-input>
+
+            <svg class="stroke-preview" viewBox="0 0 360 150" role="img" aria-label="Stroke preview">
+              <path
+                id="stroke-preview-path"
+                d="M34 110 C92 26 156 28 204 88 S292 132 326 42"
+                fill="none"
+                stroke="rgba(0, 0, 0, .5)"
+                stroke-width="5"
+                stroke-linecap="round"
+                stroke-linejoin="miter"
+                stroke-miterlimit="4"
+                stroke-dasharray="12 8"
+                stroke-dashoffset="0"
+                stroke-opacity="1"
+                vector-effect="non-scaling-stroke"></path>
+            </svg>
+
+            <div class="log" id="stroke-log">Waiting for stroke input...</div>
           </div>
         </article>
 
@@ -1630,6 +1737,15 @@
       const anchorLog = document.querySelector('#anchor-log');
       const numberDemos = Array.from(document.querySelectorAll('[data-number-label]'));
       const numberLog = document.querySelector('#number-log');
+      const textInputDemo = document.querySelector('#text-input-demo');
+      const textPreviewText = document.querySelector('#text-preview-text');
+      const textLog = document.querySelector('#text-log');
+      const fillInputDemo = document.querySelector('#fill-input-demo');
+      const fillPreviewPath = document.querySelector('#fill-preview-path');
+      const fillLog = document.querySelector('#fill-log');
+      const strokeInputDemo = document.querySelector('#stroke-input-demo');
+      const strokePreviewPath = document.querySelector('#stroke-preview-path');
+      const strokeLog = document.querySelector('#stroke-log');
       const selectionStageDemo = document.querySelector('#selection-stage-demo');
       const selectionLog = document.querySelector('#selection-log');
       const comboSelectionDemo = document.querySelector('#combo-selection-demo');
@@ -1639,11 +1755,6 @@
       const comboOrderButtons = Array.from(document.querySelectorAll('[data-combo-order]'));
       const sectorAnnularDemo = document.querySelector('#sector-annular-demo');
       const sectorRectangularDemo = document.querySelector('#sector-rectangular-demo');
-      const circularInputDemo = document.querySelector('#circular-input-demo');
-      const circularInputStartDemo = document.querySelector('#circular-input-start-demo');
-      const circularInputHiddenDemo = document.querySelector('#circular-input-hidden-demo');
-      const circularInputLog = document.querySelector('#circular-input-log');
-
       const sectorPalette = [
         {
           name: 'Warm Palette',
@@ -1782,57 +1893,6 @@
             },
           ],
         };
-      }
-
-      if (circularInputDemo && circularInputLog) {
-        const circularInputSectors = [
-          { value: 24, radius: 108, height: 38, label: 'A' },
-          { value: 32, radius: 128, height: 54, label: 'B' },
-          { value: 18, radius: 94, height: 32, label: 'C' },
-          { value: 26, radius: 118, height: 46, label: 'D' },
-        ];
-        circularInputDemo.sectors = circularInputSectors;
-        if (circularInputStartDemo) {
-          circularInputStartDemo.sectors = circularInputSectors.map((sector) => ({ ...sector }));
-        }
-        if (circularInputHiddenDemo) {
-          circularInputHiddenDemo.sectors = circularInputSectors.map((sector) => ({ ...sector }));
-        }
-
-        const renderCircularInputLog = (label, detail) => {
-          const sectors = detail.sectors
-            .map((sector, index) => {
-              const name = sector.label || `S${index + 1}`;
-              return `${name}: v ${sector.value.toFixed(1)}, r ${sector.radius.toFixed(1)}, h ${sector.height.toFixed(1)}`;
-            })
-            .join('\n');
-
-          circularInputLog.textContent = `${label}
-index: ${detail.index}  field: ${detail.field}
-source: ${detail.source}
-gap: ${detail.gap.toFixed(1)}
-border radius: ${detail.borderRadius.toFixed(1)}
-start angle: ${detail.startAngle.toFixed(1)}
-${sectors}`;
-        };
-
-        const bindCircularInputLog = (element, name) => {
-          element.addEventListener('circular-input-change', (event) => {
-            renderCircularInputLog(`${name} circular-input-change`, event.detail);
-          });
-
-          element.addEventListener('circular-input-commit', (event) => {
-            renderCircularInputLog(`${name} circular-input-commit`, event.detail);
-          });
-        };
-
-        bindCircularInputLog(circularInputDemo, 'start anchor');
-        if (circularInputStartDemo) {
-          bindCircularInputLog(circularInputStartDemo, 'locked start anchor');
-        }
-        if (circularInputHiddenDemo) {
-          bindCircularInputLog(circularInputHiddenDemo, 'hidden controls');
-        }
       }
 
       customElements.whenDefined('transform-box').then(() => {
@@ -2102,6 +2162,92 @@ numbers: ${numbers || 'none'}`;
 
         numberDemos.forEach((element) => {
           bindLog(element, element.dataset.numberLabel ?? 'input');
+        });
+      }
+
+      if (strokeInputDemo && strokePreviewPath && strokeLog) {
+        const applyStrokeValue = (value) => {
+          Object.entries(value).forEach(([name, nextValue]) => {
+            strokePreviewPath.setAttribute(name, nextValue);
+          });
+        };
+
+        const renderStrokeLog = (label, detail) => {
+          strokeLog.textContent = `${label}
+changed: ${detail.changedProperty}
+source: ${detail.source}
+value: ${JSON.stringify(detail.value, null, 2)}`;
+        };
+
+        applyStrokeValue(strokeInputDemo.value);
+
+        strokeInputDemo.addEventListener('stroke-input-change', (event) => {
+          applyStrokeValue(event.detail.value);
+          renderStrokeLog('stroke-input-change', event.detail);
+        });
+
+        strokeInputDemo.addEventListener('stroke-input-commit', (event) => {
+          applyStrokeValue(event.detail.value);
+          renderStrokeLog('stroke-input-commit', event.detail);
+        });
+      }
+
+      if (fillInputDemo && fillPreviewPath && fillLog) {
+        const applyFillValue = (value) => {
+          Object.entries(value).forEach(([name, nextValue]) => {
+            fillPreviewPath.setAttribute(name, nextValue);
+          });
+        };
+
+        const renderFillLog = (label, detail) => {
+          fillLog.textContent = `${label}
+changed: ${detail.changedProperty}
+source: ${detail.source}
+value: ${JSON.stringify(detail.value, null, 2)}`;
+        };
+
+        applyFillValue(fillInputDemo.value);
+
+        fillInputDemo.addEventListener('fill-input-change', (event) => {
+          applyFillValue(event.detail.value);
+          renderFillLog('fill-input-change', event.detail);
+        });
+
+        fillInputDemo.addEventListener('fill-input-commit', (event) => {
+          applyFillValue(event.detail.value);
+          renderFillLog('fill-input-commit', event.detail);
+        });
+      }
+
+      if (textInputDemo && textPreviewText && textLog) {
+        const applyTextValue = (value) => {
+          Object.entries(value).forEach(([name, nextValue]) => {
+            if (name === 'textLength' && nextValue === '') {
+              textPreviewText.removeAttribute(name);
+              return;
+            }
+
+            textPreviewText.setAttribute(name, nextValue);
+          });
+        };
+
+        const renderTextLog = (label, detail) => {
+          textLog.textContent = `${label}
+changed: ${detail.changedProperty}
+source: ${detail.source}
+value: ${JSON.stringify(detail.value, null, 2)}`;
+        };
+
+        applyTextValue(textInputDemo.value);
+
+        textInputDemo.addEventListener('text-input-change', (event) => {
+          applyTextValue(event.detail.value);
+          renderTextLog('text-input-change', event.detail);
+        });
+
+        textInputDemo.addEventListener('text-input-commit', (event) => {
+          applyTextValue(event.detail.value);
+          renderTextLog('text-input-commit', event.detail);
         });
       }
 

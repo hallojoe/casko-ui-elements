@@ -278,8 +278,9 @@ export function roundToPrecision(value: number, precision: number): number {
 }
 
 export function formatNumberToken(token: ParsedNumber, nextValue: number): string {
-  const rounded = roundToPrecision(nextValue, Math.max(token.precision, getPrecision(token.step)));
-  let nextText = token.precision > 0 ? rounded.toFixed(token.precision) : String(Math.round(rounded));
+  const precision = Math.max(token.precision, getPrecision(token.step));
+  const rounded = roundToPrecision(nextValue, precision);
+  let nextText = precision > 0 ? rounded.toFixed(precision) : String(Math.round(rounded));
 
   if (token.decimalSeparator === ',') {
     nextText = nextText.replace('.', ',');

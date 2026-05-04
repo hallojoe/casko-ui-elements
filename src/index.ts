@@ -24,16 +24,51 @@ export {
   type DragBoxChangeSource,
 } from './elements/drag-box/drag-box.element';
 export {
+  CaskoUiFillInputElement,
+  type FillInputChangeDetail,
+  type FillInputChangedProperty,
+  type FillInputChangeSource,
+  type FillInputRule,
+  type FillInputValue,
+} from './elements/fill-input.element';
+export {
   CaskoUiCircularSectorLayerSvgElement,
 } from './elements/circular-sector-svg/circular-sector-layer-svg.element';
+export {
+  CaskoUiCircularDecorationInputElement,
+  type CircularDecorationInputChangeDetail,
+  type CircularDecorationInputChangedProperty,
+  type CircularDecorationInputChangeSource,
+  type CircularDecorationInputCommitDetail,
+  type CircularDecorationInputCommitSource,
+  type CircularDecorationInputSector,
+  type CircularDecorationInputSectorDecoration,
+  type CircularDecorationInputSelectionChangeDetail,
+  type CircularDecorationInputSelectionSource,
+  type CircularDecorationInputValue,
+  type CircularDecorationInputValueHandleAnchor,
+} from './elements/circular-decoration-input.element';
 export {
   CaskoUiCircularInputElement,
   type CircularInputChangeDetail,
   type CircularInputChangeSource,
   type CircularInputField,
   type CircularInputSector,
-  type CircularInputValueHandleAnchor,
 } from './elements/circular-input.element';
+export {
+  CaskoUiCircularTextInputElement,
+  type CircularTextInputChangeDetail,
+  type CircularTextInputChangedProperty,
+  type CircularTextInputChangeSource,
+  type CircularTextInputCommitDetail,
+  type CircularTextInputCommitSource,
+  type CircularTextInputMode,
+  type CircularTextInputSector,
+  type CircularTextInputSelectionChangeDetail,
+  type CircularTextInputSelectionSource,
+  type CircularTextInputValue,
+  type CircularTextInputValueItem,
+} from './elements/circular-text-input.element';
 export {
   CaskoUiCircularSectorSvgElement,
   renderCircularSectorLayer,
@@ -75,6 +110,7 @@ export { CaskoUiDragScrollElement } from './elements/drag-scroll.element';
 export {
   CaskoUiNumberAwareInputElement,
   type NumberAwareInputCause,
+  type NumberAwareInputControlPosition,
   type NumberAwareInputPairLockMode,
   type NumberAwareInputReadonlyMode,
   type NumberAwareInputStateDetail,
@@ -98,6 +134,28 @@ export {
   type SelectionBoxOrderDirection,
   type SelectionBoxOrderSource,
 } from './elements/selection-box.element';
+export {
+  CaskoUiStrokeInputElement,
+  type StrokeInputChangeDetail,
+  type StrokeInputChangedProperty,
+  type StrokeInputChangeSource,
+  type StrokeInputLinecap,
+  type StrokeInputLinejoin,
+  type StrokeInputType,
+  type StrokeInputValue,
+  type StrokeInputVectorEffect,
+} from './elements/stroke-input.element';
+export {
+  CaskoUiTextInputElement,
+  type TextInputAlignmentBaseline,
+  type TextInputAnchor,
+  type TextInputChangeDetail,
+  type TextInputChangedProperty,
+  type TextInputChangeSource,
+  type TextInputDominantBaseline,
+  type TextInputLengthAdjust,
+  type TextInputValue,
+} from './elements/text-input.element';
 export {
   CaskoUiTransformBoxElement,
   type TransformBoxChangeDetail,

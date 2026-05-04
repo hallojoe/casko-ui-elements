@@ -1,0 +1,552 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Circular Input Demo</title>
+    <script type="module" src="/src/define-all.ts"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(15, 84, 73, 0.12), transparent 40%),
+          linear-gradient(180deg, #f6fbf8 0%, #eef4f1 100%);
+        color: #17322d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero p {
+        max-width: 720px;
+        color: #43615a;
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      @media (max-width: 860px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(23, 50, 45, 0.08);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 24px 60px rgba(19, 44, 39, 0.08);
+        backdrop-filter: blur(12px);
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .hint {
+        color: #55726b;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .log {
+        min-height: 88px;
+        border-radius: 14px;
+        background: #16332d;
+        color: #d8efe8;
+        padding: 14px;
+        font: 0.9rem/1.5 Consolas, "Courier New", monospace;
+        white-space: pre-wrap;
+      }
+
+      number-aware-input {
+        --number-aware-input-radius: 8px;
+      }
+
+      .circular-input-demo {
+        display: grid;
+        gap: 14px;
+      }
+
+      .circular-input-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+
+      .circular-input-controls label {
+        display: grid;
+        gap: 6px;
+        color: #43615a;
+        font-size: 0.9rem;
+        min-width: 0;
+      }
+
+      .circular-input-controls label:first-child,
+      .circular-input-controls label:nth-child(2),
+      .circular-input-controls label:nth-child(3) {
+        grid-column: 1 / -1;
+      }
+
+      @media (max-width: 680px) {
+        body {
+          padding: 20px;
+        }
+
+        .circular-input-controls {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .circular-input-stage {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+      }
+
+      .circular-input-stage circular-input {
+        --circular-input-size: min(320px, 100%);
+      }
+
+      .circular-input-stage circular-decoration-input {
+        --circular-decoration-input-size: min(320px, 100%);
+      }
+
+      .circular-input-stage circular-text-input {
+        --circular-text-input-size: min(320px, 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Circular Input Demo</h1>
+        <p>
+          Focused demos for the sector geometry input and its decoration editor.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Circular Input</h2>
+          <p class="hint">
+            Click a sector to bring its overlapped radius and height handles to the front. Drag the
+            start or end boundary handles to redistribute values, then use the fields below as the
+            source of truth for sector values, radiuses, heights, gap, and border radius.
+          </p>
+          <div class="circular-input-demo">
+            <div class="circular-input-controls">
+              <label>
+                Values
+                <number-aware-input id="circular-values-input" value="25 25 25 25" step="1"></number-aware-input>
+              </label>
+              <label>
+                Radiuses
+                <number-aware-input id="circular-radiuses-input" value="100 100 100 100" step="1"></number-aware-input>
+              </label>
+              <label>
+                Heights
+                <number-aware-input id="circular-heights-input" value="50 50 50 50" step="1"></number-aware-input>
+              </label>
+              <label>
+                Gap
+                <number-aware-input id="circular-gap-input" value="8" min="0" max="32" step="1"></number-aware-input>
+              </label>
+              <label>
+                Border radius
+                <number-aware-input id="circular-border-radius-input" value="8" min="0" max="64" step="1"></number-aware-input>
+              </label>
+            </div>
+            <div class="circular-input-stage">
+              <circular-input id="circular-input-demo"></circular-input>
+            </div>
+            <!-- <div class="circular-input-stage">
+              <circular-input
+                id="circular-input-start-demo"
+                allow-crossing="false"
+                gap="8"
+                border-radius="8"
+                value-snap-step="5"
+                rotate-snap-step="15"
+                radius-snap-step="10"
+                height-snap-step="5"
+                value-handle-path="M 0 -6 L 5 5 L -5 5 Z"
+                start-angle-handle-path="M 0 -5 L 5 0 L 0 5 L -5 0 Z"
+                ></circular-input>
+            </div>
+            <div class="circular-input-stage">
+              <circular-input
+                id="circular-input-hidden-demo"
+                gap="10"
+                border-radius="6"
+                hidden-controls="radius,height"></circular-input>
+            </div> -->
+            <div class="log" id="circular-input-log">Waiting for circular input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Circular Decoration Input</h2>
+          <p class="hint">
+            Select sectors to edit their fill and stroke. Use <kbd>Shift</kbd>, <kbd>Ctrl</kbd>, or
+            <kbd>Cmd</kbd> to toggle multiple sectors. The paint forms stay visible, disable when
+            nothing is selected, and clicking the selected sector again clears selection.
+          </p>
+          <div class="circular-input-demo">
+            <div class="circular-input-stage">
+              <circular-decoration-input
+                id="circular-decoration-input-demo"
+                gap="8"
+                border-radius="8"></circular-decoration-input>
+            </div>
+            <div class="log" id="circular-decoration-input-log">Waiting for circular decoration input...</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Circular Text Input</h2>
+          <p class="hint">
+            Select sectors to edit their text, anchor, point or path mode, offsets, and SVG text
+            attributes. Use <kbd>Shift</kbd>, <kbd>Ctrl</kbd>, or <kbd>Cmd</kbd> to edit multiple
+            sectors at once.
+          </p>
+          <div class="circular-input-demo">
+            <div class="circular-input-stage">
+              <circular-text-input
+                id="circular-text-input-demo"
+                gap="8"
+                border-radius="8"></circular-text-input>
+            </div>
+            <div class="log" id="circular-text-input-log">Waiting for circular text input...</div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module">
+      const circularInputDemo = document.querySelector('#circular-input-demo');
+      const circularInputStartDemo = document.querySelector('#circular-input-start-demo');
+      const circularInputHiddenDemo = document.querySelector('#circular-input-hidden-demo');
+      const circularInputLog = document.querySelector('#circular-input-log');
+      const circularValuesInput = document.querySelector('#circular-values-input');
+      const circularRadiusesInput = document.querySelector('#circular-radiuses-input');
+      const circularHeightsInput = document.querySelector('#circular-heights-input');
+      const circularGapInput = document.querySelector('#circular-gap-input');
+      const circularBorderRadiusInput = document.querySelector('#circular-border-radius-input');
+      const circularDecorationInputDemo = document.querySelector('#circular-decoration-input-demo');
+      const circularDecorationInputLog = document.querySelector('#circular-decoration-input-log');
+      const circularTextInputDemo = document.querySelector('#circular-text-input-demo');
+      const circularTextInputLog = document.querySelector('#circular-text-input-log');
+
+      const syncCircularElementFromCircularInput = (element, sectors, options = {}) => {
+        if (!element || !Array.isArray(sectors) || sectors.length === 0) {
+          return;
+        }
+
+        element.sectors = sectors.map((sector) => ({ ...sector }));
+
+        if (Number.isFinite(options.gap)) {
+          element.gap = options.gap;
+        }
+
+        if (Number.isFinite(options.borderRadius)) {
+          element.borderRadius = options.borderRadius;
+        }
+
+        if (Number.isFinite(options.startAngle)) {
+          element.startAngle = options.startAngle;
+        }
+      };
+
+      const syncCircularDerivedInputsFromCircularInput = (sectors, options = {}) => {
+        syncCircularElementFromCircularInput(circularDecorationInputDemo, sectors, options);
+        syncCircularElementFromCircularInput(circularTextInputDemo, sectors, options);
+      };
+
+      if (circularInputDemo && circularInputLog) {
+        const circularInputElements = [circularInputDemo, circularInputStartDemo, circularInputHiddenDemo].filter(Boolean);
+        const circularInputLabels = ['A', 'B', 'C', 'D'];
+        let syncingCircularInputs = false;
+
+        const parseCircularNumbers = (value, fallback) => {
+          const numbers = String(value ?? '')
+            .trim()
+            .split(/[\s,]+/)
+            .map((entry) => Number(entry))
+            .filter((entry) => Number.isFinite(entry));
+
+          return numbers.length ? numbers : fallback;
+        };
+
+        const rotateCircularNumbers = (numbers, count, fallback) => {
+          const source = numbers.length ? numbers : [fallback];
+          return Array.from({ length: count }, (_, index) => source[index % source.length] ?? fallback);
+        };
+
+        const formatCircularNumbers = (numbers) =>
+          numbers.map((number) => `${Math.round(number * 100) / 100}`).join(' ');
+
+        const getCircularInputNumber = (element, fallback, min, max) => {
+          const parsed = Number(element?.value ?? fallback);
+          const finite = Number.isFinite(parsed) ? parsed : fallback;
+          return Math.min(max, Math.max(min, finite));
+        };
+
+        const updateCircularInputsFromFields = () => {
+          if (syncingCircularInputs) return;
+
+          const count = circularInputLabels.length;
+          const values = rotateCircularNumbers(parseCircularNumbers(circularValuesInput?.value, [25]), count, 25);
+          const radiuses = rotateCircularNumbers(parseCircularNumbers(circularRadiusesInput?.value, [100]), count, 100);
+          const heights = rotateCircularNumbers(parseCircularNumbers(circularHeightsInput?.value, [50]), count, 50);
+          const gap = getCircularInputNumber(circularGapInput, 8, 0, 32);
+          const borderRadius = getCircularInputNumber(circularBorderRadiusInput, 8, 0, 64);
+          const sectors = circularInputLabels.map((label, index) => {
+            const radius = Math.max(1, radiuses[index]);
+            return {
+              label,
+              value: Math.max(0, values[index]),
+              radius,
+              height: Math.max(1, Math.min(radius, heights[index])),
+            };
+          });
+
+          circularInputElements.forEach((element) => {
+            element.sectors = sectors.map((sector) => ({ ...sector }));
+            element.gap = gap;
+            element.borderRadius = borderRadius;
+          });
+
+          syncCircularDerivedInputsFromCircularInput(circularInputDemo.sectors, {
+            gap: circularInputDemo.gap,
+            borderRadius: circularInputDemo.borderRadius,
+            startAngle: circularInputDemo.startAngle,
+          });
+        };
+
+        const syncCircularFieldsFromSectors = (sectors) => {
+          syncingCircularInputs = true;
+          circularValuesInput.value = formatCircularNumbers(sectors.map((sector) => sector.value));
+          circularRadiusesInput.value = formatCircularNumbers(sectors.map((sector) => sector.radius));
+          circularHeightsInput.value = formatCircularNumbers(sectors.map((sector) => sector.height));
+          syncingCircularInputs = false;
+          updateCircularInputsFromFields();
+        };
+
+        [circularValuesInput, circularRadiusesInput, circularHeightsInput, circularGapInput, circularBorderRadiusInput]
+          .filter(Boolean)
+          .forEach((element) => {
+            element.addEventListener('input', updateCircularInputsFromFields);
+            element.addEventListener('number-aware-input-commit', updateCircularInputsFromFields);
+          });
+
+        updateCircularInputsFromFields();
+
+        const renderCircularInputLog = (label, detail) => {
+          const sectors = detail.sectors
+            .map((sector, index) => {
+              const name = sector.label || `S${index + 1}`;
+              return `${name}: v ${sector.value.toFixed(1)}, r ${sector.radius.toFixed(1)}, h ${sector.height.toFixed(1)}`;
+            })
+            .join('\n');
+
+          circularInputLog.textContent = `${label}
+index: ${detail.index}  field: ${detail.field}
+source: ${detail.source}
+gap: ${detail.gap.toFixed(1)}
+border radius: ${detail.borderRadius.toFixed(1)}
+start angle: ${detail.startAngle.toFixed(1)}
+${sectors}`;
+        };
+
+        const bindCircularInputLog = (element, name) => {
+          element.addEventListener('circular-input-change', (event) => {
+            if (['value', 'radius', 'height'].includes(event.detail.field)) {
+              syncCircularFieldsFromSectors(event.detail.sectors);
+            }
+
+            if (element === circularInputDemo) {
+              syncCircularDerivedInputsFromCircularInput(event.detail.sectors, {
+                gap: event.detail.gap,
+                borderRadius: event.detail.borderRadius,
+                startAngle: event.detail.startAngle,
+              });
+            }
+
+            renderCircularInputLog(`${name} circular-input-change`, event.detail);
+          });
+
+          element.addEventListener('circular-input-commit', (event) => {
+            if (['value', 'radius', 'height'].includes(event.detail.field)) {
+              syncCircularFieldsFromSectors(event.detail.sectors);
+            }
+
+            if (element === circularInputDemo) {
+              syncCircularDerivedInputsFromCircularInput(event.detail.sectors, {
+                gap: event.detail.gap,
+                borderRadius: event.detail.borderRadius,
+                startAngle: event.detail.startAngle,
+              });
+            }
+
+            renderCircularInputLog(`${name} circular-input-commit`, event.detail);
+          });
+        };
+
+        bindCircularInputLog(circularInputDemo, 'boundary handles');
+        if (circularInputStartDemo) {
+          bindCircularInputLog(circularInputStartDemo, 'locked boundaries');
+        }
+        if (circularInputHiddenDemo) {
+          bindCircularInputLog(circularInputHiddenDemo, 'hidden controls');
+        }
+      }
+
+      if (circularDecorationInputDemo && circularDecorationInputLog) {
+        circularDecorationInputDemo.value = [
+          {
+            fill: { fill: '#f59e0b', 'fill-opacity': '0.82', 'fill-rule': 'nonzero' },
+            stroke: {
+              stroke: '#92400e',
+              'stroke-width': '2',
+              'stroke-opacity': '1',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-miterlimit': '4',
+              'stroke-dasharray': 'none',
+              'stroke-dashoffset': '0',
+              'vector-effect': 'non-scaling-stroke',
+            },
+          },
+          {
+            fill: { fill: '#14b8a6', 'fill-opacity': '0.78', 'fill-rule': 'nonzero' },
+            stroke: {
+              stroke: '#0f766e',
+              'stroke-width': '2',
+              'stroke-opacity': '1',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-miterlimit': '4',
+              'stroke-dasharray': 'none',
+              'stroke-dashoffset': '0',
+              'vector-effect': 'non-scaling-stroke',
+            },
+          },
+          {
+            fill: { fill: '#3b82f6', 'fill-opacity': '0.76', 'fill-rule': 'nonzero' },
+            stroke: {
+              stroke: '#1d4ed8',
+              'stroke-width': '2',
+              'stroke-opacity': '1',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-miterlimit': '4',
+              'stroke-dasharray': 'none',
+              'stroke-dashoffset': '0',
+              'vector-effect': 'non-scaling-stroke',
+            },
+          },
+          {
+            fill: { fill: '#8b5cf6', 'fill-opacity': '0.74', 'fill-rule': 'nonzero' },
+            stroke: {
+              stroke: '#6d28d9',
+              'stroke-width': '2',
+              'stroke-opacity': '1',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-miterlimit': '4',
+              'stroke-dasharray': 'none',
+              'stroke-dashoffset': '0',
+              'vector-effect': 'non-scaling-stroke',
+            },
+          },
+        ];
+
+        const renderCircularDecorationLog = (label, detail) => {
+          const selected = detail.selectedIndexes?.length ? detail.selectedIndexes.join(', ') : 'none';
+          circularDecorationInputLog.textContent = `${label}
+selected: ${selected}
+changed: ${detail.changedProperty ?? 'selection'}
+source: ${detail.source}
+sectors: ${circularDecorationInputDemo.value
+            .map((entry, index) => `${index + 1}: ${entry.fill.fill}/${entry.stroke.stroke}`)
+            .join('  ')}`;
+        };
+
+        circularDecorationInputDemo.addEventListener('circular-decoration-input-selection-change', (event) => {
+          renderCircularDecorationLog('circular-decoration-input-selection-change', event.detail);
+        });
+
+        circularDecorationInputDemo.addEventListener('circular-decoration-input-change', (event) => {
+          renderCircularDecorationLog('circular-decoration-input-change', event.detail);
+        });
+
+        circularDecorationInputDemo.addEventListener('circular-decoration-input-commit', (event) => {
+          renderCircularDecorationLog('circular-decoration-input-commit', event.detail);
+        });
+      }
+
+      if (circularTextInputDemo && circularTextInputLog) {
+        circularTextInputDemo.value = [
+          { text: 'Alpha', mode: 'point', anchor: 'block-center-inline-center', offsetX: 0, offsetY: 0, radialOffset: 0 },
+          { text: 'Beta', mode: 'path', anchor: 'block-start-inline-center', offsetX: 0, offsetY: 0, radialOffset: -4 },
+          { text: 'Gamma', mode: 'point', anchor: 'block-center-inline-center', offsetX: 0, offsetY: 0, radialOffset: 0 },
+          { text: 'Delta', mode: 'path', anchor: 'block-center-inline-center', offsetX: 0, offsetY: 0, radialOffset: 0 },
+        ];
+
+        const renderCircularTextLog = (label, detail) => {
+          const selected = detail.selectedIndexes?.length ? detail.selectedIndexes.join(', ') : 'none';
+          circularTextInputLog.textContent = `${label}
+selected: ${selected}
+changed: ${detail.changedProperty ?? 'selection'}
+source: ${detail.source}
+texts: ${circularTextInputDemo.value
+            .map((entry, index) => `${index + 1}: ${entry.text}/${entry.mode}/${entry.anchor}`)
+            .join('  ')}`;
+        };
+
+        circularTextInputDemo.addEventListener('circular-text-input-selection-change', (event) => {
+          renderCircularTextLog('circular-text-input-selection-change', event.detail);
+        });
+
+        circularTextInputDemo.addEventListener('circular-text-input-change', (event) => {
+          renderCircularTextLog('circular-text-input-change', event.detail);
+        });
+
+        circularTextInputDemo.addEventListener('circular-text-input-commit', (event) => {
+          renderCircularTextLog('circular-text-input-commit', event.detail);
+        });
+      }
+    </script>
+  </body>
+</html>

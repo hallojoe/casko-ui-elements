@@ -11,6 +11,7 @@
     "./dist/define-all.js",
     "./dist/elements/angle-input.js",
     "./dist/elements/anchor-point-input.js",
+    "./dist/elements/background-colors.js",
     "./dist/elements/circular-decoration-input.js",
     "./dist/elements/circular-input.js",
     "./dist/elements/circular-sector-layer-svg.js",
@@ -20,6 +21,7 @@
     "./dist/elements/drag-scroll.js",
     "./dist/elements/fill-input.js",
     "./dist/elements/number-aware-input.js",
+    "./dist/elements/range-thing.js",
     "./dist/elements/selection-box.js",
     "./dist/elements/stroke-input.js",
     "./dist/elements/text-input.js",
@@ -41,6 +43,10 @@
     "./anchor-point-input": {
       "types": "./dist/elements/anchor-point-input.element.d.ts",
       "import": "./dist/elements/anchor-point-input.js"
+    },
+    "./background-colors": {
+      "types": "./dist/elements/background-colors.element.d.ts",
+      "import": "./dist/elements/background-colors.js"
     },
     "./circular-decoration-input": {
       "types": "./dist/elements/circular-decoration-input.element.d.ts",
@@ -78,6 +84,10 @@
       "types": "./dist/elements/number-aware-input.element.d.ts",
       "import": "./dist/elements/number-aware-input.js"
     },
+    "./range-thing": {
+      "types": "./dist/elements/range-thing.element.d.ts",
+      "import": "./dist/elements/range-thing.js"
+    },
     "./selection-box": {
       "types": "./dist/elements/selection-box.element.d.ts",
       "import": "./dist/elements/selection-box.js"
@@ -104,7 +114,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@casko/circular-sector": "3.1.7-pre",
+    "@casko/circular-sector": "^3.1.8-pre",
     "@casko/queues": "^1.0.0-pre",
     "lit": "^3.0.0"
   },

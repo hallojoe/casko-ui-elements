@@ -22,6 +22,7 @@ Or import individual elements:
 import '@casko/ui-elements/selection-box';
 import '@casko/ui-elements/angle-input';
 import '@casko/ui-elements/anchor-point-input';
+import '@casko/ui-elements/background-colors';
 import '@casko/ui-elements/circular-decoration-input';
 import '@casko/ui-elements/circular-input';
 import '@casko/ui-elements/circular-text-input';
@@ -30,10 +31,42 @@ import '@casko/ui-elements/drag-box';
 import '@casko/ui-elements/drag-scroll';
 import '@casko/ui-elements/fill-input';
 import '@casko/ui-elements/number-aware-input';
+import '@casko/ui-elements/range-thing';
 import '@casko/ui-elements/stroke-input';
 import '@casko/ui-elements/text-input';
 import '@casko/ui-elements/token-aware-input';
 ```
+
+## `background-colors`
+
+`background-colors` converts a list of CSS colors into a PNG data URI and applies it as the element background image.
+
+### Example
+
+```html
+<background-colors
+  colors="#000,#fff,red"
+  direction="horizontal"
+  size="2"></background-colors>
+```
+
+```ts
+const element = document.querySelector('background-colors');
+
+if (element) {
+  element.colors = ['#000', '#fff', 'red'];
+  element.direction = 'vertical';
+  element.size = 2;
+}
+```
+
+### Public API
+
+Attributes/properties:
+
+- `colors`: CSV string or string array of CSS color values; blank and invalid values are ignored
+- `direction`: `'horizontal' | 'vertical'`, default `'horizontal'`
+- `size`: optional wrap size; horizontal sets the canvas width, vertical sets the canvas height
 
 ## `angle-input`
 
@@ -171,6 +204,90 @@ Track styling:
 - `--angle-input-track-stroke` controls the background track color.
 - `--angle-input-track-stroke-width` controls only the background track thickness; it does not make the track visible if the stroke color is transparent, invalid, or overridden.
 - The value arc is rendered after the background track and covers the active portion.
+
+## `range-thing`
+
+`range-thing` renders multiple draggable handles along an SVG path and uses direct `range-item` children as the source of truth.
+
+### Example
+
+```html
+<range-thing
+  min="1"
+  max="5"
+  step="[1,2,3,4,5]"
+  step-lock
+  item-rule="even-odd"
+  tick-path="M -4 0 L 4 0"
+  animation="slide">
+  <range-item value="0"><div>Ignored below min</div></range-item>
+  <range-item value="1"><div>One</div></range-item>
+  <range-item value="2" offset="12"><div>Two</div></range-item>
+  <range-item value="4"><div>Four</div></range-item>
+  <range-item
+    value="5"
+    handle-path="M 0 -6 L 5 5 L -5 5 Z"
+    tick-path="M 0 -4 L 4 0 L 0 4 L -4 0 Z"><div>Five</div></range-item>
+  <range-item value="6"><div>Ignored above max</div></range-item>
+</range-thing>
+
+<range-thing
+  min="0"
+  max="100"
+  step="5"
+  space-rule="pearl-necklace"
+  item-rule="after"
+  track-path="M 10 72 C 28 18, 44 18, 60 52 S 84 86, 90 34">
+  <range-item value="15"><div>Alpha</div></range-item>
+  <range-item value="45"><div>Beta</div></range-item>
+  <range-item value="72"><div>Gamma</div></range-item>
+</range-thing>
+```
+
+### Public API
+
+Attributes/properties:
+
+- `min` / `max`: numeric range, default `0..100`
+- `step`: number or numeric list; a number controls increment size and a list defines allowed target values
+- `step-lock`: snaps pointer movement to `step` targets, default `false`
+- `track-path`: optional SVG path data; empty uses a horizontal line
+- `handle-path`: optional default SVG handle path centered on `0,0`
+- `tick-path`: optional default per-item tick path centered on `0,0`; empty uses a short perpendicular line tick
+- `item-rule`: `'even-odd' | 'before' | 'after' | 'center'`, default `'center'`
+- `crossing-rule`: `'none' | 'allow'`, default `'none'`
+- `space-rule`: `'none' | 'pearl-necklace'`, default `'none'`
+- `direction`: `'ltr' | 'rtl'`, default `'ltr'`
+- `animation`: `'none' | 'slide'`, default `'none'`
+- `disabled`: disables pointer and keyboard updates
+
+`range-item` attributes:
+
+- `value`: item value used for handle position
+- `offset`: additional visual offset from the path normal, default `0`
+- `handle-path`: optional per-item handle path override
+- `tick-path`: optional per-item tick path override; when present it overrides the parent `tick-path`
+
+Tick behavior:
+
+- `range-thing` renders one tick per active `range-item`.
+- Ticks follow the same value-to-path position as the handle.
+- Child `tick-path` overrides the parent `tick-path`, matching `handle-path` precedence.
+- Without a custom `tick-path`, the tick is rendered as a short line perpendicular to the current path tangent.
+
+Events:
+
+```ts
+interface RangeThingChangeDetail {
+  index: number;
+  currentValue: number;
+  allValues: number[];
+  source: 'pointer' | 'keyboard';
+}
+```
+
+- `range-thing-change`
+- `range-thing-commit`
 
 ## `anchor-point-input`
 

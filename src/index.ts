@@ -19,6 +19,10 @@ export {
   type AnchorPointValue,
 } from './elements/anchor-point-input.element';
 export {
+  CaskoUiBackgroundColorsElement,
+  type BackgroundColorsDirection,
+} from './elements/background-colors.element';
+export {
   CaskoUiDragBoxElement,
   type DragBoxChangeDetail,
   type DragBoxChangeSource,
@@ -124,6 +128,18 @@ export {
   type TokenAwareInputStateDetail,
   type ParsedValueToken,
 } from './elements/token-aware-input.element';
+export {
+  CaskoUiRangeItemElement,
+  CaskoUiRangeThingElement,
+  type RangeThingAnimation,
+  type RangeThingChangeDetail,
+  type RangeThingChangeSource,
+  type RangeThingCrossingRule,
+  type RangeThingDirection,
+  type RangeThingItemRule,
+  type RangeThingSpaceRule,
+  type RangeThingStep,
+} from './elements/range-thing.element';
 export {
   CaskoUiSelectionBoxElement,
   type SelectionBoxChangeDetail,

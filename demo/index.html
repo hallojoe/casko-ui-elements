@@ -235,6 +235,58 @@
         align-items: start;
       }
 
+      .range-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+      }
+
+      .range-demo-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 84, 73, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 244, 241, 0.92));
+      }
+
+      .range-demo-card range-thing {
+        width: 100%;
+        --range-thing-track-stroke: rgba(15, 84, 73, 0.24);
+        --range-thing-track-stroke-width: 4;
+        --range-thing-item-distance: 30px;
+        --range-thing-tick-stroke: rgba(15, 84, 73, 0.5);
+        --range-thing-tick-stroke-width: 1.75;
+      }
+
+      .range-chip {
+        min-width: 46px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0f5449, #47a387);
+        color: white;
+        font: 700 0.78rem/1 "Segoe UI", sans-serif;
+        text-align: center;
+        box-shadow: 0 12px 24px rgba(15, 84, 73, 0.16);
+      }
+
+      .range-chip.warm {
+        background: linear-gradient(135deg, #d8682d, #f6b86d);
+      }
+
+      @media (max-width: 860px) {
+        .range-demo-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        .range-demo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .angle-demo-item {
         display: grid;
         gap: 10px;
@@ -245,6 +297,19 @@
       .angle-demo-item angle-input {
         --angle-input-size: 64px;
         --angle-input-track-stroke: rgba(0, 0, 0, .05);
+      }
+
+      .loan-amount {
+        --angle-input-size: 128px;       
+        --angle-input-track-stroke: rgba(82, 83, 85, .2);
+        --angle-input-value-stroke-width: 0;
+        --angle-input-value-stroke: #365c8d00;
+        --angle-input-line-stroke: rgba(53, 91, 142, 00);
+        --angle-input-handle-stroke: #365c8d;
+        --angle-input-center-fill: #365c8d;
+
+        --angle-input-value-text-font: 600 1.2rem/1.2 "Segoe UI", sans-serif;
+        --angle-input-step-value-text-font: 600 1rem/1.2 "Segoe UI", sans-serif;
       }
 
       .angle-demo-item2 {
@@ -361,6 +426,40 @@
       .sector-demo-card strong {
         color: #17322d;
         font-size: 0.95rem;
+      }
+
+      .background-colors-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .background-colors-demo-card {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .background-colors-demo-card strong {
+        color: #17322d;
+        font-size: 0.95rem;
+      }
+
+      .background-colors-preview {
+        display: block;
+        min-height: 150px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 84, 73, 0.14);
+        background-color: #ffffff;
+        background-repeat: repeat;
+        background-size: 24px 24px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+      }
+
+      @media (max-width: 680px) {
+        .background-colors-demo-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 680px) {
@@ -745,7 +844,221 @@
         </article>
 
         <article class="panel">
+          <h2>Background Colors</h2>
+          <p class="hint">
+            These examples render tiny color canvases as PNG data URIs and use them as repeated CSS
+            background images.
+          </p>
+          <div class="background-colors-demo-grid">
+            <div class="background-colors-demo-card">
+              <strong>CSV, horizontal wrap</strong>
+              <background-colors
+                style="background-size:contain;"
+
+              class="background-colors-preview"
+                colors="#0f5449,#47a387,#f6b86d,#d8682d,#365c8d,#88c6ff"
+                direction="horizontal"
+                size="1"></background-colors>
+            </div>
+            <div class="background-colors-demo-card">
+              <strong>CSV, horizontal wrap</strong>
+              <background-colors
+                class="background-colors-preview"
+                style="sbackground-size:contain;background-repeat: repeat;"
+
+                colors="#0f5449,#47a387,#f6b86d,#d8682d,#365c8d,#88c6ff"
+                direction="vertical"
+                size="1"></background-colors>
+            </div>
+
+            <div class="background-colors-demo-card">
+              <strong>CSV, horizontal wrap</strong>
+              <background-colors
+                style="background-size:cover;"
+                class="background-colors-preview"
+                colors="#47a387,#365c8d,#88c6ff"
+                direction="horizontal"
+                size="2"></background-colors>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Range Thing</h2>
+          <p class="hint">
+            This multi-handle slider maps values to positions along an SVG path. The gallery below
+            mixes behavior demos with shape studies so it is easier to judge handle movement, per-item
+            ticks, and content placement across straight and decorative tracks.
+          </p>
+          <div class="range-demo-grid">
+            <div class="range-demo-card">
+              <strong>Stepped defaults</strong>
+              <range-thing
+                id="range-default-demo"
+                min="1"
+                max="5"
+                step="[1,2,3,4,5]"
+                step-lock
+                item-rule="even-odd"
+                tick-path="M -4 0 L 4 0"
+                animation="slide">
+                <range-item value="0"><div class="range-chip">0</div></range-item>
+                <range-item value="1"><div class="range-chip">One</div></range-item>
+                <range-item value="2"><div class="range-chip">Two</div></range-item>
+                <range-item value="4" offset="10"><div class="range-chip">Four</div></range-item>
+                <range-item
+                  value="5"
+                  handle-path="M 0 -6 L 5 5 L -5 5 Z"
+                  tick-path="M 0 -4 L 4 0 L 0 4 L -4 0 Z"><div class="range-chip warm">Five</div></range-item>
+                <range-item value="6"><div class="range-chip">6</div></range-item>
+              </range-thing>
+              <p class="subtle">Parent tick-path is overridden by the last child, and out-of-range items stay ignored.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Curved push layout</strong>
+              <range-thing
+                id="range-wave-demo"
+                min="0"
+                max="100"
+                step="5"
+                item-rule="after"
+                space-rule="pearl-necklace"
+                animation="slide"
+                track-path="M 10 72 C 28 18, 44 18, 60 52 S 84 86, 90 34">
+                <range-item value="15"><div class="range-chip">Alpha</div></range-item>
+                <range-item value="40" offset="6"><div class="range-chip warm">Beta</div></range-item>
+                <range-item value="70"><div class="range-chip">Gamma</div></range-item>
+              </range-thing>
+              <p class="subtle">Click the track to slide the nearest handle, or drag to push the chain.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Circle</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="5"
+                item-rule="before"
+                track-path="M 50 12 A 38 38 0 1 1 49.999 12">
+                <range-item value="12"><div class="range-chip">A</div></range-item>
+                <range-item value="42"><div class="range-chip warm">B</div></range-item>
+                <range-item value="78"><div class="range-chip">C</div></range-item>
+              </range-thing>
+              <p class="subtle">Closed loop path with evenly spaced labels around the outside.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Rounded rectangle</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="10"
+                item-rule="after"
+                track-path="M 22 16 H 78 A 10 10 0 0 1 88 26 V 74 A 10 10 0 0 1 78 84 H 22 A 10 10 0 0 1 12 74 V 26 A 10 10 0 0 1 22 16">
+                <range-item value="8"><div class="range-chip">Top</div></range-item>
+                <range-item value="48"><div class="range-chip warm">Side</div></range-item>
+                <range-item value="78"><div class="range-chip">Base</div></range-item>
+              </range-thing>
+              <p class="subtle">Rounded corners keep the tangent changes softer than a hard-edged box.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Rounded triangle</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="10"
+                item-rule="even-odd"
+                track-path="M 50 14 Q 55 14 58 20 L 80 62 Q 83 68 77 73 L 56 85 Q 50 88 44 85 L 23 73 Q 17 68 20 62 L 42 20 Q 45 14 50 14 Z">
+                <range-item value="15"><div class="range-chip">Edge</div></range-item>
+                <range-item value="55"><div class="range-chip warm">Corner</div></range-item>
+                <range-item value="85"><div class="range-chip">Base</div></range-item>
+              </range-thing>
+              <p class="subtle">Alternating content helps test label placement on a compact polygonal loop.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Rounded star</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="5"
+                item-rule="center"
+                track-path="M 50 13 Q 52 19 57 23 L 68 31 Q 74 28 81 28 Q 79 35 79 42 L 87 52 Q 82 55 79 61 Q 80 68 81 75 Q 74 75 68 72 L 57 79 Q 54 85 50 88 Q 46 85 43 79 L 32 72 Q 26 75 19 75 Q 20 68 21 61 L 13 52 Q 18 49 21 42 Q 20 35 19 28 Q 26 28 32 31 L 43 23 Q 48 19 50 13 Z">
+                <range-item value="10"><div class="range-chip">1</div></range-item>
+                <range-item value="38"><div class="range-chip warm">2</div></range-item>
+                <range-item value="66"><div class="range-chip">3</div></range-item>
+                <range-item value="90"><div class="range-chip warm">4</div></range-item>
+              </range-thing>
+              <p class="subtle">A denser decorative loop for checking tighter bends and repeated inflection points.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Infinity</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="5"
+                item-rule="before"
+                track-path="M 22 50 C 22 28, 48 28, 50 50 C 52 72, 78 72, 78 50 C 78 28, 52 28, 50 50 C 48 72, 22 72, 22 50 Z">
+                <range-item value="14"><div class="range-chip">Left</div></range-item>
+                <range-item value="50"><div class="range-chip warm">Center</div></range-item>
+                <range-item value="82"><div class="range-chip">Right</div></range-item>
+              </range-thing>
+              <p class="subtle">Crossing geometry without crossing handles, useful for visually checking nearest-track clicks.</p>
+            </div>
+
+            <div class="range-demo-card">
+              <strong>Hilbert connector</strong>
+              <range-thing
+                min="0"
+                max="100"
+                step="1"
+                item-rule="after"
+                track-path="M 20 80 V 60 H 40 V 80 H 60 V 60 H 80 V 40 H 60 V 20 H 40 V 40 H 20 V 20">
+                <range-item
+                  value="34"
+                  handle-path="M 0 -6 L 5 5 L -5 5 Z"
+                  tick-path="M -5 -5 L 5 5 M -5 5 L 5 -5"><div class="range-chip warm">Solo</div></range-item>
+              </range-thing>
+              <p class="subtle">A single item travels the connector path to emphasize path following over multi-handle spacing.</p>
+            </div>
+          </div>
+          <div class="log" id="range-log">Waiting for range changes...</div>
+        </article>
+
+        <article class="panel">
           <h2>Angle Input</h2>
+
+
+            <div class="angle-demo-itemxxx" style="padding: 100px;;">
+                <angle-input
+                  id="loan-amount"
+                  class="loan-amount"
+                  label="Loan amount"
+                  label-display="title"
+                  display-unit="€"
+                  display-text
+                  unit="number"
+                  value="5000"
+                  distribution="100000"
+                  handle-path="M 0 -3 L 3 3 L -3 3 Z"
+                  rotate-handle                  
+                  data-list="[5000, 10000, 20000, 50000, 100000]"
+                  data-list-mode=""
+                  arc-degrees="270"
+                  start-angle="135"
+                  show-value-text
+                  show-step-ticks
+                  show-step-value-text
+                  handle-offset="10"
+                  step-value-text-offset="16"
+                  step="1000"
+                  snap-step="1000"></angle-input>
+              </div>
+
+
           <p class="hint">
             Drag the handle around the circle to set an angle, turn ratio, or distributed number.
             The control supports wrapped degrees or radians, bounded ranges, clockwise or
@@ -756,6 +1069,10 @@
 
 
             <div class="angle-demo-grid">
+
+
+
+
               <div class="angle-demo-item">
                 <angle-input
                   id="angle-default-demo"
@@ -856,6 +1173,7 @@
                   handle-path="M 0 -3 L 3 3 L -3 3 Z"
                   rotate-handle                  
                   data-list="[5,10,15,20,25,50,75,100]"
+                  data-list-mode="absolute"
                   arc-degrees="270"
                   start-angle="135"
                   show-step-ticks
@@ -1731,6 +2049,8 @@
       const log = document.querySelector('#event-log');
       const dragBoxDemos = document.querySelectorAll('#drag-box-demo, #drag-box-snap-demo');
       const dragLog = document.querySelector('#drag-log');
+      const rangeDemos = Array.from(document.querySelectorAll('range-thing'));
+      const rangeLog = document.querySelector('#range-log');
       const angleDemos = Array.from(document.querySelectorAll('angle-input'));
       const angleLog = document.querySelector('#angle-log');
       const anchorDemos = Array.from(document.querySelectorAll('anchor-point-input'));
@@ -1753,6 +2073,7 @@
       const comboStepInput = document.querySelector('#combo-step-input');
       const comboMoveButtons = Array.from(document.querySelectorAll('[data-combo-move]'));
       const comboOrderButtons = Array.from(document.querySelectorAll('[data-combo-order]'));
+      const backgroundColorsArrayDemo = document.querySelector('#background-colors-array-demo');
       const sectorAnnularDemo = document.querySelector('#sector-annular-demo');
       const sectorRectangularDemo = document.querySelector('#sector-rectangular-demo');
       const sectorPalette = [
@@ -1768,6 +2089,20 @@
           ],
         },
       ];
+
+      if (backgroundColorsArrayDemo) {
+        backgroundColorsArrayDemo.colors = [
+          '#17322d',
+          '#2f7d6b',
+          '#e8f3ee',
+          '#d8682d',
+          '#f6b86d',
+          '',
+          'invalid-color',
+          '#365c8d',
+          '#88c6ff',
+        ];
+      }
 
       if (sectorAnnularDemo) {
         sectorAnnularDemo.showGuideCircle = true;
@@ -2271,6 +2606,28 @@ source: ${detail.source}`;
 
           element.addEventListener('angle-input-commit', (event) => {
             renderAngleLog(`${label} commit`, event.detail);
+          });
+        });
+      }
+
+      if (rangeLog && rangeDemos.length > 0) {
+        const renderRangeLog = (label, detail) => {
+          rangeLog.textContent = `${label}
+index: ${detail.index}
+currentValue: ${detail.currentValue}
+allValues: ${detail.allValues.join(', ')}
+source: ${detail.source}`;
+        };
+
+        rangeDemos.forEach((element) => {
+          const label = element.id || 'range';
+
+          element.addEventListener('range-thing-change', (event) => {
+            renderRangeLog(`${label} change`, event.detail);
+          });
+
+          element.addEventListener('range-thing-commit', (event) => {
+            renderRangeLog(`${label} commit`, event.detail);
           });
         });
       }
